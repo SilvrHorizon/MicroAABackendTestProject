@@ -1,3 +1,4 @@
+from flask import current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app import db
@@ -37,9 +38,14 @@ class User(db.Model):
 class TrainingImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(32), unique=True, default=generateUuid, index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey(f'{User.__tablename__}.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(f'{User.__tablename__}.id'),)
     
-    image_url = db.Column(db.String(512), nullable=False, index=True)
+    def __init__(self, user):
+        self.public_id = generateUuid()
+        self.user = user
+
+    def get_image_url(self):
+        return current_app.config["TRAINING_IMAGE_UPLOAD_URL"] + f'/{self.public_id}'
 
     classified_areas = db.relationship("ClassifiedArea", backref="image", lazy='dynamic')
 
@@ -62,7 +68,7 @@ class ClassifiedArea(db.Model):
     height = db.Column(db.Integer)
 
     def accessible_by(self, user):
-        return image.accessible_by(user)
+        return self.image.accessible_by(user)
 
 
 
