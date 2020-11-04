@@ -93,8 +93,9 @@ class TrainingImage(db.Model):
             "public_id": self.public_id,
             "image_url": self.get_image_url(),
             "_links": {
+                "self": url_for("api.get_training_image", public_id=self.public_id),
                 "user": url_for("api.get_user", public_id=self.user.public_id),
-                "classified_areas": url_for('api.get_classified_areas')
+                "classified_areas": url_for('api.get_classified_areas', training_image=self.public_id)
             }
         }
 
@@ -123,6 +124,7 @@ class ClassifiedArea(db.Model):
             "tag": self.tag,
 
             "_links": {
+                "self": url_for("api.get_classified_area", public_id=self.public_id),
                 "training_image": url_for(
                     "api.get_training_image", public_id=self.training_image.public_id
                 ) if self.training_image else None
@@ -130,15 +132,16 @@ class ClassifiedArea(db.Model):
         }
 
     def __init__(self, x_position, y_position, width, height, training_image, tag=None):
+        if not training_image: 
+            raise ValueError("Passed TrainingImage does not exist")
+
         self.x_position = x_position
         self.y_position = y_position
 
         self.width = width
-        self.height = height,
-
+        self.height = height
         self.training_image = training_image
 
-        raise ValueError("Passed TrainingImage does not exist")
 
 
     def accessible_by(self, user):
@@ -146,13 +149,14 @@ class ClassifiedArea(db.Model):
 
     @staticmethod
     def from_dict(data):
+        print("Training image public_id", data["training_image"])
+
         area = ClassifiedArea(
             x_position=data["x_position"],
             y_position=data["y_position"],
 
             width=data["width"],
             height=data["height"],
-
             training_image=TrainingImage.query.filter_by(public_id=data["training_image"]).first()
         )
         return area

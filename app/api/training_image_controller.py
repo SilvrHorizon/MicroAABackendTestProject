@@ -10,9 +10,9 @@ from .functions import api_paginate_query, make_bad_request, make_error_response
 
 @blueprint.route("/training_images/<string:public_id>", methods=['GET'])
 def get_training_image(public_id):
-    image = TrainingImage.query.file_type(public_id=public_id)
+    image = TrainingImage.query.filter_by(public_id=public_id).first()
     if image:
-        return image.to_dict()
+        return jsonify(image.to_dict())
     return make_error_response(404)
 
 @blueprint.route("/training_images", methods=['GET'])
