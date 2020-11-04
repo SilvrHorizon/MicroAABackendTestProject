@@ -155,22 +155,3 @@ class ClassifiedArea(db.Model):
             training_image=TrainingImage.query.filter_by(public_id=data["training_image"]).first()
         )
         return area
-
-
-
-def api_paginate_query(query, endpoint, page, per_page=1, **kwargs):
-    paginated = query.paginate(page, per_page, False)
-
-    return {
-        "items": [item.to_dict() for item in paginated.items],
-        "_meta": {
-            "page": page,
-            "per_page": per_page,
-            "total_items": paginated.total
-        },
-        "_links": {
-            "self": url_for(endpoint, page=page, **kwargs),
-            "next_page": (url_for(endpoint, page=page + 1, **kwargs)) if paginated.has_next else None,
-            "prev_page": (url_for(endpoint, page=page - 1, **kwargs)) if paginated.has_prev else None
-        }
-    }
