@@ -5,6 +5,7 @@ from app.models import TrainingImage, User  # Try to remove user import
 
 
 from . import blueprint
+from .auth import login_required
 from .functions import api_paginate_query, make_bad_request, make_error_response
 
 

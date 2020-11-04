@@ -8,6 +8,10 @@
 2020-11-02 22:15-20:40 d= 0h35	: Database structure updated and tests improved
 2020-11-02 22:45-23:00 d= 0h35	: Trying how well helper functions worked (and fixing)
 
-2020-11-02 17:11-18:30 d= 1h20	: Creating API get methods
-2020-11-02 19:17-20:12 d= 0h54	: Creating API get methods
-2020-11-02 22:11-23:00 d= 0h53	: Creating API get methods
+2020-11-03 17:11-18:30 d= 1h20	: Creating API get methods
+2020-11-03 19:17-20:12 d= 0h54	: Creating API get methods
+2020-11-03 22:11-23:00 d= 0h53	: Creating API get methods
+
+2020-11-04 16:10-17:18 d= 1h08   : Moved controllers to better locations, more uniform api access
+2020-11-04 19:59-20:14 d= 0h14   : Authentication
+2020-11-04 20:35-21:18 d= 0h42   : Authentication complete
