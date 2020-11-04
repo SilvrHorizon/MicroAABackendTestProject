@@ -40,8 +40,9 @@ class User(db.Model):
 
     def to_dict(self):
         return {
-            'public_id': self.public_id,
+            'email': self.email,
             'is_admin': self.is_admin,
+            'public_id': self.public_id,
             '_links': {
                 'this': url_for("api.get_user", public_id=self.public_id),
                 'training_images': url_for("api.get_training_images", user=self.public_id)
@@ -60,7 +61,7 @@ class TrainingImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(32), unique=True, default=generateUuid, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey(f'{User.__tablename__}.id'),)
-    
+
     classified_areas = db.relationship("ClassifiedArea", backref="training_images", lazy='dynamic')
 
 

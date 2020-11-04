@@ -15,6 +15,4 @@ def create_app(config):
     migrate.init_app(app)
 
     app.register_blueprint(api_blueprint)
-    #app.register_blueprint(site)
-
     return app
