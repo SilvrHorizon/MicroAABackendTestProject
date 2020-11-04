@@ -26,9 +26,9 @@ class User(db.Model):
 
     def __init__(self, email="only", password_plain="for test purpose", is_admin=False):
         super()
-
         self.email = email
         self.public_id = generateUuid()
+        self.is_admin = is_admin
 
         self.set_password(password_plain)
 
@@ -51,9 +51,11 @@ class User(db.Model):
     
     @staticmethod
     def from_dict(dictionary):
+        
         return User(
             email=dictionary["email"],
-            password_plain=dictionary["password"]
+            password_plain=dictionary["password"],
+            is_admin=dictionary["is_admin"] if "is_admin" in dictionary else False
         )
 
 

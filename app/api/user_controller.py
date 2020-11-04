@@ -24,8 +24,6 @@ def get_users():
     query = User.query
     return api_paginate_query(query, "api.get_users", page=page)
 
-
-
 @blueprint.route("/users", methods=["POST"])
 def create_user():
     data = request.get_json() or {}
