@@ -3,8 +3,6 @@ from app.extensions import db, migrate
 
 from .api.controller import api
 
-from .testbp import site
-
 def create_app(config):
     app = Flask(__name__)
     app.config.from_object(config)
