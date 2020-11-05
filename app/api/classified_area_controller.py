@@ -25,7 +25,6 @@ def get_classified_areas():
 @blueprint.route("/classified_areas/<string:public_id>", methods=['GET'])
 def get_classified_area(public_id):
     area = ClassifiedArea.query.filter_by(public_id=public_id).first()
-
     if area:
         return area.to_dict()
 
@@ -35,9 +34,11 @@ def get_classified_area(public_id):
 def create_classified_area():
     data = request.get_json() or {}
 
-    if 'training_image' not in data or 'x_position' not in data or 'y_position' not in data or 'width' not in data \
-            or 'height' not in data or 'y_position' not in data:
-        return make_bad_request("Training image, x_position, y_position, width and height must be included")
+    print(data)
+    
+
+    if 'training_image' not in data or 'x_position' not in data or 'y_position' not in data or 'width' not in data or 'height' not in data:
+        return make_bad_request("training_image, x_position, y_position, width and height must be included")
 
     area = None
     

@@ -73,6 +73,9 @@ class TrainingImage(db.Model):
     def set_image(self, im_stream):
         image = PILImage.open(im_stream)
         image.save(os.path.join(current_app.static_folder, 'training_images', f'{self.public_id}.png'))
+        self.width, self.height = image.size
+        
+
 
     def __init__(self, user):
         self.public_id = generateUuid()
@@ -88,14 +91,13 @@ class TrainingImage(db.Model):
         return current_app.config["TRAINING_IMAGE_UPLOAD_URL"] + f'/{self.public_id}.png'
 
     classified_areas = db.relationship("ClassifiedArea", backref="training_image", lazy='dynamic')
-
-    def accessible_by(self, user):
-        return self.user_id == user.id or user.is_admin
     
     def to_dict(self):
         return {
             "public_id": self.public_id,
             "image_url": self.get_image_url(),
+            "width": self.width,
+            "height": self.height,
             "_links": {
                 "self": url_for("api.get_training_image", public_id=self.public_id),
                 "user": url_for("api.get_user", public_id=self.user.public_id),
@@ -138,7 +140,13 @@ class ClassifiedArea(db.Model):
     def __init__(self, x_position, y_position, width, height, training_image, tag=None):
         if not training_image: 
             raise ValueError("Passed TrainingImage does not exist")
-
+        
+        if x_position < 0 or y_position < 0:
+            raise ValueError("ClassifiedAreas cannot extend out of the bounds the parent image!")
+        
+        if x_position + width > training_image.width or y_position + height > training_image.height:
+            raise ValueError("ClassifiedAreas cannot extend out of the bounds the parent image!")
+        
         self.x_position = x_position
         self.y_position = y_position
 
@@ -146,10 +154,7 @@ class ClassifiedArea(db.Model):
         self.height = height
         self.training_image = training_image
 
-
-
-    def accessible_by(self, user):
-        return self.image.accessible_by(user)
+        self.tag = tag.lower() if tag else None
 
     @staticmethod
     def from_dict(data):
@@ -161,6 +166,8 @@ class ClassifiedArea(db.Model):
 
             width=data["width"],
             height=data["height"],
-            training_image=TrainingImage.query.filter_by(public_id=data["training_image"]).first()
+            training_image=TrainingImage.query.filter_by(public_id=data["training_image"]).first(),
+
+            tag=data["tag"] if 'tag' in data else None
         )
         return area
