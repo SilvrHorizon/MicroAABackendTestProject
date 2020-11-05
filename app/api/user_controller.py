@@ -6,10 +6,7 @@ from app.utilities import email_is_valid
 
 from . import blueprint
 from .functions import api_paginate_query, get_pagination_page, make_bad_request, make_error_response
-
-
-
-
+from .auth import login_required
 
 @blueprint.route('/users/<string:public_id>', methods=['GET'])
 def get_user(public_id):
@@ -42,3 +39,37 @@ def create_user():
     db.session.commit()
 
     return user.to_dict(), 201
+
+
+@blueprint.route('/users/<user_public_id>/demote', methods=['POST'])
+@login_required
+def demote_user(current_user, user_public_id):
+    if not current_user.is_admin:
+        return make_error_response(401, "Only admins can demote users")
+    
+    user = User.query.filter_by(public_id=user_public_id).first_or_404()
+    if not user:
+        return make_error_response(404, "User not found")
+    
+    user.is_admin = False
+    db.session.commit()
+    
+    return {"status": "success"}, 201
+
+
+
+@blueprint.route('/users/<user_public_id>/promote', methods=["POST"])
+@login_required
+def promote_user(current_user, user_public_id):
+    if not current_user.is_admin:
+        return make_error_response(401, "Only admins can promote users")
+    
+    user = User.query.filter_by(public_id=user_public_id).first()
+    if not user:
+        return make_error_response(404, "User not found")
+    
+    user.is_admin = True
+
+    db.session.commit()
+    return {"status": "success"}, 201
+

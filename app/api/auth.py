@@ -58,7 +58,5 @@ def login_required(f):
         if not user:
             return make_error_response(401, "Invalid token")
 
-        current_user = user
-        
-        return f(*args, **kwargs)
+        return f(user, *args, **kwargs)
     return decorated

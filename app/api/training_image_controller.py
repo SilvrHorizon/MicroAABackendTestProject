@@ -17,7 +17,7 @@ def get_training_image(public_id):
     return make_error_response(404)
 
 @blueprint.route("/training_images", methods=['GET'])
-def get_training_images():
+def get_training_images(current_user):
     endpoint = "api.get_training_images"
     query = TrainingImage.query
     user_public_id = request.args.get('user')
@@ -34,26 +34,35 @@ def get_training_images():
 
 
 @blueprint.route("/training_images", methods=['POST'])
-def create_training_image():
-    data = request.form
-
+@login_required
+def create_training_image(current_user):
+    data = request.form.copy()
     # Check if dictionary is empty and if so load the data from passed json instead
-    if not bool(data):
-        data = request.json
+    if not data:
+        data = {}
 
     if 'user' not in data:
-        make_bad_request("You must include the owner to the image")
+        data['user'] = current_user.public_id
+    
+    if not current_user.is_admin and data['user'] != current_user.public_id:
+        make_error_response("Only admins can create images that belong to other users. You can only create an image that belongs to you") 
+
+    
+    if 'image' not in request.files:
+        return make_bad_request("No image included")
+    
+    dbImage = None
     try:
         dbImage = TrainingImage.from_dict(data)
-
-        image = request.files["image"]
-
-        if image:
-            dbImage.set_image(image.stream)
-
-        db.session.add(dbImage)
-        db.session.commit()
-
     except ValueError as e:
         return make_bad_request(str(e))
-    return "test"
+
+    image = request.files["image"]
+    dbImage.set_image(image.stream)
+    
+    db.session.add(dbImage)
+    db.session.commit()
+
+
+
+    return jsonify(dbImage.to_dict()), 201
