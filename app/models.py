@@ -62,10 +62,13 @@ class User(db.Model):
 class TrainingImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(32), unique=True, default=generateUuid, index=True)
+
+    width = db.Column(db.Integer)
+    height = db.Column(db.Integer)
+
     user_id = db.Column(db.Integer, db.ForeignKey(f'{User.__tablename__}.id'),)
 
     classified_areas = db.relationship("ClassifiedArea", backref="training_images", lazy='dynamic')
-
 
     def set_image(self, im_stream):
         image = PILImage.open(im_stream)
@@ -73,7 +76,6 @@ class TrainingImage(db.Model):
 
     def __init__(self, user):
         self.public_id = generateUuid()
-
         if user is None:
             raise ValueError("User does not exist, please pass a valid user")
         self.user = user
