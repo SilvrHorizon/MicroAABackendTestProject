@@ -1,8 +1,8 @@
 """Users table, TrainingImage table and ClassifiedArea table
 
-Revision ID: d9b877443a09
+Revision ID: 40383b02cd54
 Revises: 
-Create Date: 2020-11-05 17:34:08.827475
+Create Date: 2020-11-07 00:33:53.875566
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd9b877443a09'
+revision = '40383b02cd54'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,8 +21,8 @@ def upgrade():
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('public_id', sa.String(length=32), nullable=True),
-    sa.Column('email', sa.String(length=248), nullable=True),
-    sa.Column('password_hash', sa.String(length=128), nullable=True),
+    sa.Column('email', sa.String(length=248), nullable=False),
+    sa.Column('password_hash', sa.String(length=128), nullable=False),
     sa.Column('is_admin', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
