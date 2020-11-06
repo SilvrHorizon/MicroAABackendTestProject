@@ -7,6 +7,7 @@ from app import db
 from uuid import uuid4
 
 from PIL import Image as PILImage
+from PIL import UnidentifiedImageError
 
 
 def generateUuid():
@@ -71,8 +72,12 @@ class TrainingImage(db.Model):
     classified_areas = db.relationship("ClassifiedArea", backref="training_images", lazy='dynamic')
 
     def set_image(self, im_stream):
-        image = PILImage.open(im_stream)
-        image.save(os.path.join(current_app.static_folder, 'training_images', f'{self.public_id}.png'))
+        try:
+            image = PILImage.open(im_stream)
+        except UnidentifiedImageError:
+            raise ValueError('Image file passed is corrupt/not an image')
+        print("img size", image.size)
+        image.save(os.path.join(current_app.static_folder, current_app.config['TRAINING_IMAGES_UPLOAD_FOLDER'], f'{self.public_id}.png'))
         self.width, self.height = image.size
         
 
@@ -88,7 +93,7 @@ class TrainingImage(db.Model):
         return TrainingImage(user=User.query.filter_by(public_id=dictionary["user"]).first())
 
     def get_image_url(self):
-        return current_app.config["TRAINING_IMAGE_UPLOAD_URL"] + f'/{self.public_id}.png'
+        return current_app.config["TRAINING_IMAGES_UPLOAD_URL"] + f'/{self.public_id}.png'
 
     classified_areas = db.relationship("ClassifiedArea", backref="training_image", lazy='dynamic')
     
@@ -129,6 +134,8 @@ class ClassifiedArea(db.Model):
 
             "tag": self.tag,
 
+            "public_id": self.public_id,
+
             "_links": {
                 "self": url_for("api.get_classified_area", public_id=self.public_id),
                 "training_image": url_for(
@@ -140,13 +147,16 @@ class ClassifiedArea(db.Model):
     def __init__(self, x_position, y_position, width, height, training_image, tag=None):
         if not training_image: 
             raise ValueError("Passed TrainingImage does not exist")
-        
+
         if x_position < 0 or y_position < 0:
             raise ValueError("ClassifiedAreas cannot extend out of the bounds the parent image!")
         
         if x_position + width > training_image.width or y_position + height > training_image.height:
             raise ValueError("ClassifiedAreas cannot extend out of the bounds the parent image!")
-        
+
+        if width < 0 or height < 0:
+            raise ValueError("Width and height cannot be below 0")
+
         self.x_position = x_position
         self.y_position = y_position
 
@@ -158,8 +168,6 @@ class ClassifiedArea(db.Model):
 
     @staticmethod
     def from_dict(data):
-        print("Training image public_id", data["training_image"])
-
         area = ClassifiedArea(
             x_position=data["x_position"],
             y_position=data["y_position"],

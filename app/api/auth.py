@@ -60,3 +60,9 @@ def login_required(f):
 
         return f(user, *args, **kwargs)
     return decorated
+
+
+@blueprint.route("/secret_protected_route")
+@login_required
+def test_auth_protection_route(current_user):
+    return jsonify({"status": "success", "user": current_user.to_dict()}), 200

@@ -37,6 +37,7 @@ def get_training_images(current_user):
 @login_required
 def create_training_image(current_user):
     data = request.form.copy()
+    
     # Check if dictionary is empty and if so load the data from passed json instead
     if not data:
         data = {}
@@ -45,9 +46,8 @@ def create_training_image(current_user):
         data['user'] = current_user.public_id
     
     if not current_user.is_admin and data['user'] != current_user.public_id:
-        make_error_response("Only admins can create images that belong to other users. You can only create an image that belongs to you") 
+        return make_error_response(401, "Only admins can create images that belong to other users. You can only create an image that belongs to you") 
 
-    
     if 'image' not in request.files:
         return make_bad_request("No image included")
     
@@ -58,7 +58,11 @@ def create_training_image(current_user):
         return make_bad_request(str(e))
 
     image = request.files["image"]
-    dbImage.set_image(image.stream)
+
+    try:
+        dbImage.set_image(image.stream)
+    except ValueError as e:
+        return make_bad_request(str(e))
     
     db.session.add(dbImage)
     db.session.commit()
