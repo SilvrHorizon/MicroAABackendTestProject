@@ -17,7 +17,7 @@ def get_training_image(public_id):
     return make_error_response(404)
 
 @blueprint.route("/training_images", methods=['GET'])
-def get_training_images(current_user):
+def get_training_images():
     endpoint = "api.get_training_images"
     query = TrainingImage.query
     user_public_id = request.args.get('user')

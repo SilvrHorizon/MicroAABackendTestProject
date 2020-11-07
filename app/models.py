@@ -122,6 +122,10 @@ class TrainingImage(db.Model):
     def get_image_url(self):
         return current_app.config["TRAINING_IMAGES_UPLOAD_URL"] + f'/{self.public_id}.png'
 
+    def get_image_path(self):
+        return os.path.join(current_app.static_folder, current_app.config['TRAINING_IMAGES_UPLOAD_FOLDER'], f'{self.public_id}.png')
+
+
     classified_areas = db.relationship("ClassifiedArea", backref="training_image", lazy='dynamic')
     
     def to_dict(self):
@@ -139,6 +143,17 @@ class TrainingImage(db.Model):
 
 
 class ClassifiedArea(db.Model):
+    UPDATABLE_ATTRIBUTES = ['x_position', 'y_position', 'width', 'height', 'tag', 'training_image']
+    ATTRIBUTE_TYPES = {
+        'x_position': int, 
+        'y_position': int,
+        'width': int,
+        'height': int,
+        'tag': (str, type(None)),
+        'training_image': (TrainingImage, str)
+    }
+
+
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(32), unique=True, default=generateUuid, index=True)
 
@@ -172,17 +187,20 @@ class ClassifiedArea(db.Model):
         }
 
     def __init__(self, x_position, y_position, width, height, training_image, tag=None):
-        if not training_image: 
-            raise ValueError("Passed TrainingImage does not exist")
+        self.update_attributes(
+            dict(
+                x_position=x_position,
+                y_position=y_position,
 
-        if x_position < 0 or y_position < 0:
-            raise ValueError("ClassifiedAreas cannot extend out of the bounds the parent image!")
-        
-        if x_position + width > training_image.width or y_position + height > training_image.height:
-            raise ValueError("ClassifiedAreas cannot extend out of the bounds the parent image!")
+                width=width,
+                height=height,
 
-        if width < 0 or height < 0:
-            raise ValueError("Width and height cannot be below 0")
+                tag=tag,
+                training_image=training_image
+            )
+
+        )
+
 
         self.x_position = x_position
         self.y_position = y_position
@@ -190,19 +208,61 @@ class ClassifiedArea(db.Model):
         self.width = width
         self.height = height
         self.training_image = training_image
-
+        
         self.tag = tag.lower() if tag else None
 
     @staticmethod
+    def validate_arguments(arguments):
+        ClassifiedArea.validate_argument_types(arguments)
+        ClassifiedArea.validate_argument_values(arguments)
+
+    @staticmethod
+    def validate_argument_types(arguments):
+        for field in arguments:
+            if field in ClassifiedArea.UPDATABLE_ATTRIBUTES:
+
+                print("type:", type(ClassifiedArea.ATTRIBUTE_TYPES[field]))
+                if not isinstance(arguments[field], ClassifiedArea.ATTRIBUTE_TYPES[field]):
+                    if isinstance(ClassifiedArea.ATTRIBUTE_TYPES[field], tuple):
+                        raise TypeError(f'{field} was of type {type(arguments[field]).__name__} not of type {list(i.__name__ for i in ClassifiedArea.ATTRIBUTE_TYPES[field])}') 
+                    else:
+                        raise TypeError(f'{field} was of type {type(arguments[field]).__name__} not of type {ClassifiedArea.ATTRIBUTE_TYPES[field].__name__}') 
+                
+
+    @staticmethod
+    def validate_argument_values(arguments): 
+        if arguments['x_position'] < 0 or arguments['y_position'] < 0:
+            raise ValueError("ClassifiedAreas cannot extend out of the bounds the parent image!")
+        
+        if arguments['x_position'] + arguments['width'] > arguments['training_image'].width or arguments['y_position'] + arguments['height'] > arguments['training_image'].height:
+            raise ValueError("ClassifiedAreas cannot extend out of the bounds the parent image!")
+
+        if arguments['width'] < 0 or arguments['height'] < 0:
+            raise ValueError("Width and height cannot be below 0")
+
+    @staticmethod
+    def convert_traning_image_to_object_if_string(dictionary):
+        if isinstance(dictionary['training_image'], str):
+            dictionary['training_image'] = TrainingImage.query.filter_by(public_id=dictionary['training_image']).first()
+        
+        if not dictionary['training_image']:
+            raise ValueError("Passed traning image does not exist")
+
+    def update_attributes(self, dictionary):
+        self.convert_traning_image_to_object_if_string(dictionary)
+        self.validate_arguments(dictionary)
+
+        for field in dictionary:
+            print(f'field: {field}')
+            if field in ClassifiedArea.UPDATABLE_ATTRIBUTES:
+                print(f'updating fild: {field}')
+                setattr(self, field, dictionary[field])
+
+
+    @staticmethod
     def from_dict(data):
+        data['training_image'] = TrainingImage.query.filter_by(public_id=data["training_image"]).first()
         area = ClassifiedArea(
-            x_position=data["x_position"],
-            y_position=data["y_position"],
-
-            width=data["width"],
-            height=data["height"],
-            training_image=TrainingImage.query.filter_by(public_id=data["training_image"]).first(),
-
-            tag=data["tag"] if 'tag' in data else None
+            **data
         )
         return area
