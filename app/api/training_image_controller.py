@@ -12,8 +12,10 @@ from .functions import api_paginate_query, make_bad_request, make_error_response
 @blueprint.route("/training_images/<string:public_id>", methods=['GET'])
 def get_training_image(public_id):
     image = TrainingImage.query.filter_by(public_id=public_id).first()
+    
     if image:
         return jsonify(image.to_dict())
+    
     return make_error_response(404)
 
 @blueprint.route("/training_images", methods=['GET'])
@@ -31,6 +33,20 @@ def get_training_images():
     else:
         page = int(page)
     return jsonify(api_paginate_query(query, page=page, endpoint=endpoint, user=user_public_id))
+
+
+@blueprint.route('/training_images/<string:public_id>', methods=['DELETE'])
+@login_required
+def delete_training_image(current_user, public_id):
+    training_image = TrainingImage.query.filter_by(public_id=public_id).first_or_404()
+
+    if not training_image.modifiable_by(current_user):
+        return make_error_response(401, "You do not have the permission to delete this")
+    
+    training_image.delete_image()      # Deletes the acctual image
+    db.session.delete(training_image)  # Deletes the database representation
+    db.session.commit()
+    return {"status": "success"}
 
 
 @blueprint.route("/training_images", methods=['POST'])
@@ -51,6 +67,9 @@ def create_training_image(current_user):
         dbImage = TrainingImage.from_dict(data)
     except ValueError as e:
         return make_bad_request(str(e))
+
+    if not dbImage.modifiable_by(current_user):
+        return make_error_response(401, "You do not have the permission to create a training image that is a child of the user you requested")
 
     image = request.files["image"]
 

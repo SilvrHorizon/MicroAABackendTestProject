@@ -15,7 +15,7 @@ from .functions import make_error_response
 def create_token(user):
     return jwt.encode({
         "public_id": user.public_id,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=12)
     },
     current_app.config["SECRET_KEY"])
 
@@ -28,8 +28,6 @@ def login():
         return make_error_response(401, "Missing credentials")
     
     user = User.query.filter_by(email=auth.username).first()
-    print("user", user)
-    print("password", auth.password)
     if not user or not user.check_password(auth.password):
         return make_error_response(401, "Invalid credentials")
 
@@ -50,8 +48,6 @@ def login_required(f):
             return make_error_response(401, "Invalid token")
 
         if datetime.datetime.utcfromtimestamp(decoded['exp']) < datetime.datetime.utcnow():
-            print(datetime.datetime.utcfromtimestamp(decoded['exp']))
-            print(datetime.datetime.utcnow())
             return make_error_response(401, "Token expired")
         
         user = User.query.filter_by(public_id=decoded["public_id"]).first()

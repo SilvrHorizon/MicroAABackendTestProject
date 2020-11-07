@@ -125,7 +125,6 @@ class TestRoutes(unittest.TestCase):
 
         self.training_images_route = f'{FLASK_BASE_URL}/training_images'
         
-        # print("secret", secrets.token_urlsafe(5).lower())
         self.user = TestUser(self.app, f'{secrets.token_hex(16).lower()}@helllo.com', "password")
         self.user2 = TestUser(self.app, f'{secrets.token_hex(16).lower()}@helllo.com', "password")
 
@@ -164,102 +163,10 @@ class TestRoutes(unittest.TestCase):
 
         image_url = self.user.get_create_image_response(get_file_binary('TEST_IMAGE.png')).json['image_url']
         
-
-
         self.assertEqual(
             self.user.get(image_url).data,
             get_file_binary('TEST_IMAGE.png')
         )
-
-
-        
-        '''
-        post_response = self.user.post('/training_images',
-            data=dict(image=(io.BytesIO(binary_image), 'image.png'))
-        )
-        self.assertResponse(post_response, 201)
-        '''
-
-        '''
-
-        post_response = self.client.post('/training_images', headers={
-            'x-access-token': self.test_account['token']    
-        }, data=dict(image=(io.BytesIO(binary_image), 'image.png')))
-        self.assertResponse(post_response, 201)
-        image_public_id = post_response.json['public_id']
-
-
-        # Test that unauthorized users cannot upload images with other parent users than themselves 
-        post_response = self.client.post('/training_images', headers={
-            'x-access-token': self.test_account['token']    
-        }, data=dict(user=self.test_account_2["public_id"], image=(io.BytesIO(binary_image), 'image.png')))
-        self.assertResponse(post_response, 401)
-        
-        post_response = self.client.post(
-            '/classified_areas',
-            json={
-                'training_image': "INVALID_IMAGE",
-                'width': 20,
-                "height": 20,
-                "x_position": 20,
-                "y_position": 20,
-                "tag": "world"
-            }
-        )
-        self.assertResponse(post_response, 400)
-
-        post_response = self.client.post(
-            '/classified_areas',
-            json={
-                'training_image': image_public_id,
-                'width': -1,
-                "height": -1,
-                "x_position": 20,
-                "y_position": 20,
-                "tag": "world"
-            }
-        )
-        self.assertResponse(post_response, 400)
-
-        post_response = self.client.post(
-            '/classified_areas',
-            json={
-                'training_image': image_public_id,
-                'width': 20,
-                "height": 20,
-                "x_position": 300,
-                "y_position": 300,
-                "tag": "world"
-            }
-        )
-        self.assertResponse(post_response, 400)
-
-        post_response = self.client.post(
-            '/classified_areas',
-            json={
-                'training_image': image_public_id,
-                'width': 20,
-                "height": 20,
-                "x_position": 300,
-                "y_position": 300,
-                "tag": "world"
-            }
-        )
-        self.assertResponse(post_response, 400)
-
-        post_response = self.client.post(
-            '/classified_areas',
-            json={
-                'training_image': image_public_id,
-                'width': 0,
-                "height": 0,
-                "x_position": 128,
-                "y_position": 128,
-                "tag": "world"
-            }
-        )
-        self.assertResponse(post_response, 201)
-        '''
 
     def test_classified_area_upload(self):
         image_public_id = self.user.get_create_image_response(
@@ -306,7 +213,6 @@ class TestRoutes(unittest.TestCase):
             201
         )
 
-        print(response.json)
         self.assertResponse(
             self.user.get(f'/classified_areas/{response.json["public_id"]}'),
             200
@@ -320,31 +226,7 @@ class TestRoutes(unittest.TestCase):
 
     def test_image(self):
         pass
-        # print(self.client.get('/users').json)
-        '''
-        with self.client.open():
-            print(self.client.post(self.users_route, json={
-                'email': "jo@test.com",
-                'password': "password"
-            }).json)
-
-            credentials = base64.b64encode(b'jo@test.com:password').decode('utf-8')
-            response = self.client.get('/login', headers={
-                'Authorization': 'Basic ' + credentials
-            })
-
-            headers = {"x-access-token": response.json['x-access-token']}
-
-            file_bytes = open("TEST_IMAGE.png", 'rb')
-            response = self.client.post('/training_images', headers=headers, data=dict(
-                image=(io.BytesIO(file_bytes.read()), 'image.png')))
-            file_bytes.close()
-
-            
-
-            print(self.client.post())
-            print(self.client.get(self.users_route).json)
-            ''' 
+         
 
 
 

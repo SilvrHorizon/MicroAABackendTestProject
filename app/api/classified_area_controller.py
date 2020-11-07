@@ -52,18 +52,22 @@ def get_classified_area(public_id):
 
 # TODO Authorization for POST
 @blueprint.route("/classified_areas", methods=['POST'])
-def create_classified_area():
+@login_required
+def create_classified_area(current_user):
     data = request.get_json() or {}
 
     if 'training_image' not in data or 'x_position' not in data or 'y_position' not in data or 'width' not in data or 'height' not in data:
         return make_bad_request("training_image, x_position, y_position, width and height must be included")
 
     area = None
-    
     try:
         area = ClassifiedArea.from_dict(data)
     except (ValueError, TypeError) as e:
         return make_bad_request(str(e))
+    
+    if area.training_image.user != current_user and not current_user.is_admin:
+        return make_error_response(401, "You can only update your own classified_areas, only admins can update other users areas")
+    
     db.session.add(area)
     db.session.commit()
 
@@ -87,5 +91,16 @@ def get_classified_area_image(public_id):
 
     return send_file(img_stream, mimetype='image/png')
 
+@blueprint.route('/classified_areas/<string:public_id>', methods=['DELETE'])
+@login_required
+def delete_classified_area(current_user, public_id):
+    area = ClassifiedArea.query.filter_by(public_id=public_id).first_or_404()
 
+    if area.training_image.user != current_user and not current_user.is_admin:
+        return make_bad_request(401, "You can only delete your own images since you are not an admin")
+    
+    db.session.delete(area)
+    db.session.commit()
+
+    return {"status": "success"}, 201
 

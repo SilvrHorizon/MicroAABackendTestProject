@@ -26,3 +26,5 @@
 2020-11-07 10:24-11:26 d= 1h02  : Input validation continuation
 
 2020-11-07 16:16-16:48 d= 0h30  : PUT added to resource classified_area
+2020-11-07 18:17-18:46 d= 0h30  : DELETE added to all routes
+2020-11-07 21:44-

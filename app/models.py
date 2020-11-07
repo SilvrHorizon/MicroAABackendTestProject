@@ -32,7 +32,7 @@ class User(db.Model):
     
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     
-    training_images = db.relationship("TrainingImage", backref="user", lazy='dynamic')
+    training_images = db.relationship("TrainingImage", backref="user", cascade="all,delete", lazy='dynamic')
 
     def __init__(self, email=None, password=None, is_admin=False):
         super()
@@ -85,6 +85,10 @@ class User(db.Model):
     def from_dict(dictionary):
         user = User(**dictionary) 
         return user
+    
+    def modifiable_by(self, user):
+        return self == user or user.is_admin
+
 
 
 class TrainingImage(db.Model):
@@ -96,7 +100,7 @@ class TrainingImage(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey(f'{User.__tablename__}.id'),)
 
-    classified_areas = db.relationship("ClassifiedArea", backref="training_images", lazy='dynamic')
+    classified_areas = db.relationship("ClassifiedArea", cascade="all,delete", backref="training_images", lazy='dynamic')
 
     def set_image(self, im_stream):
         try:
@@ -106,8 +110,14 @@ class TrainingImage(db.Model):
         
         image.save(os.path.join(current_app.static_folder, current_app.config['TRAINING_IMAGES_UPLOAD_FOLDER'], f'{self.public_id}.png'))
         self.width, self.height = image.size
-        
+    
+    def modifiable_by(self, user):
+        return self.user == user or user.is_admin
 
+        
+    def delete_image(self):
+        if os.path.exists(self.get_image_path()):
+            os.remove(self.get_image_path())
 
     def __init__(self, user):
         self.public_id = generateUuid()
@@ -166,6 +176,9 @@ class ClassifiedArea(db.Model):
     width = db.Column(db.Integer)
     height = db.Column(db.Integer)
 
+    def modifiable_by(self, user):
+        return self.training_image.user == user or user.is_admin
+
     def to_dict(self):
         return {
             "x_position": self.x_position,
@@ -220,8 +233,6 @@ class ClassifiedArea(db.Model):
     def validate_argument_types(arguments):
         for field in arguments:
             if field in ClassifiedArea.UPDATABLE_ATTRIBUTES:
-
-                print("type:", type(ClassifiedArea.ATTRIBUTE_TYPES[field]))
                 if not isinstance(arguments[field], ClassifiedArea.ATTRIBUTE_TYPES[field]):
                     if isinstance(ClassifiedArea.ATTRIBUTE_TYPES[field], tuple):
                         raise TypeError(f'{field} was of type {type(arguments[field]).__name__} not of type {list(i.__name__ for i in ClassifiedArea.ATTRIBUTE_TYPES[field])}') 
@@ -253,9 +264,7 @@ class ClassifiedArea(db.Model):
         self.validate_arguments(dictionary)
 
         for field in dictionary:
-            print(f'field: {field}')
             if field in ClassifiedArea.UPDATABLE_ATTRIBUTES:
-                print(f'updating fild: {field}')
                 setattr(self, field, dictionary[field])
 
 

@@ -24,9 +24,6 @@ def get_users():
 @blueprint.route("/users", methods=["POST"])
 def create_user():
     data = request.get_json() or {}
-
-    print("data", data["email"])
-
     if 'email' not in data or 'password' not in data:
         return make_bad_request("Email and password must be included in create request")
 
@@ -53,14 +50,14 @@ def create_user():
 @blueprint.route('/users/<user_public_id>', methods=['PUT'])
 @login_required
 def update_user(current_user, user_public_id):
-    if current_user.public_id != user_public_id and not current_user.is_admin:
-        make_error_response(401, "Only admins can update users")
-     
     user_to_update = User.query.filter_by(public_id=user_public_id).first_or_404()
 
+    if not user_to_update.modifiable_by(current_user):
+        return make_error_response(401, "You do not have the permission to update this user")
 
     # Testing required
     if 'is_admin' in request.json:
+        
         # Check if user tries to update is_admin without current_user being an admin
         if request.json['is_admin'] != user_to_update.is_admin and not current_user.is_admin:
             return make_bad_request(401, "Only admins can promote or demote")
@@ -73,7 +70,20 @@ def update_user(current_user, user_public_id):
     db.session.commit()
     return user_to_update.to_dict()
 
-@blueprint.route('/users/<user_public_id>/demote', methods=['POST'])
+@blueprint.route('/users/<string:public_id>', methods=['DELETE'])
+@login_required
+def delete_user(current_user, public_id):
+    to_delete = User.query.filter_by(public_id=public_id).first_or_404()
+
+    if not to_delete.modifiable_by(current_user):
+        return make_bad_request(401, "You can only delete your own account, unless you are an admin")
+
+    db.session.delete(to_delete)
+    db.session.commit()
+
+    return {"status": "success"}, 200
+
+@blueprint.route('/users/<string:user_public_id>/demote', methods=['POST'])
 @login_required
 def demote_user(current_user, user_public_id):
     if not current_user.is_admin:
