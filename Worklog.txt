@@ -21,4 +21,6 @@
 2020-11-05 20:43-21:29 d = 0h45  : Complete test re-write
 
 2020-11-06 18:16-19:24           : Writing tests; continuation
-2020-11-06 29:46-
+2020-11-06 29:46-21:00           : PUT user route
+2020-11-07 00:18-00:58           : Input validation
+2020-11-07 10:24                 : Input validation continuation

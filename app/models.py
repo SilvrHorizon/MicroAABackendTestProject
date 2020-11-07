@@ -14,27 +14,41 @@ def generateUuid():
     return uuid4().hex
 
 class User(db.Model):
+    
+    UPDATABLE_ATTRIBUTES = ['email', 'password', 'is_admin']
+    ATTRIBUTE_TYPES = {
+        'email': str,
+        'password': str,
+        'is_admin': bool
+    }
+
+
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(32), unique=True, default=generateUuid, index=True)
 
 
-    email = db.Column(db.String(248), index=True, unique=True)
-    password_hash = db.Column(db.String(128))
+    email = db.Column(db.String(248), index=True, nullable=False, unique=True)
+    password_hash = db.Column(db.String(128), nullable=False)
     
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     
     training_images = db.relationship("TrainingImage", backref="user", lazy='dynamic')
 
-    def __init__(self, email="only", password_plain="for test purpose", is_admin=False):
+    def __init__(self, email=None, password=None, is_admin=False):
         super()
-        self.email = email
         self.public_id = generateUuid()
-        self.is_admin = is_admin
 
-        self.set_password(password_plain)
+        self.update_fields(
+            dict(
+                email=email,
+                is_admin=is_admin,
+                password=password,
+            )
+        )
 
-    def set_password(self, password_plain):
-        self.password_hash = generate_password_hash(password_plain)
+    def set_password(self, password):
+        if password:
+            self.password_hash = generate_password_hash(password)
 
     def check_password(self, to_check):
         return check_password_hash(self.password_hash, to_check)
@@ -49,15 +63,28 @@ class User(db.Model):
                 'training_images': url_for("api.get_training_images", user=self.public_id)
             }
         }
-    
+
+    def update_fields(self, data):
+        User.validate_argument_types(data)
+
+        for field in data:
+            if field in User.UPDATABLE_ATTRIBUTES:
+                setattr(self, field, data[field])
+        
+        if 'password' in data:
+            self.set_password(data['password'])
+
+    @staticmethod
+    def validate_argument_types(dictionary):
+        for field in dictionary:
+            if field in User.UPDATABLE_ATTRIBUTES:
+                if not isinstance(dictionary[field], User.ATTRIBUTE_TYPES[field]):
+                    raise TypeError(f'{field} was of type {type(dictionary[field]).__name__} not of type {User.ATTRIBUTE_TYPES[field].__name__}')
+
     @staticmethod
     def from_dict(dictionary):
-        
-        return User(
-            email=dictionary["email"],
-            password_plain=dictionary["password"],
-            is_admin=dictionary["is_admin"] if "is_admin" in dictionary else False
-        )
+        user = User(**dictionary) 
+        return user
 
 
 class TrainingImage(db.Model):
@@ -76,7 +103,7 @@ class TrainingImage(db.Model):
             image = PILImage.open(im_stream)
         except UnidentifiedImageError:
             raise ValueError('Image file passed is corrupt/not an image')
-        print("img size", image.size)
+        
         image.save(os.path.join(current_app.static_folder, current_app.config['TRAINING_IMAGES_UPLOAD_FOLDER'], f'{self.public_id}.png'))
         self.width, self.height = image.size
         

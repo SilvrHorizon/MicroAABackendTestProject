@@ -43,7 +43,6 @@ class TestUser():
         request = self.client.post('/users',
             json={'email': self.email, 'password': self.password}
         )
-
         self.public_id = request.json["public_id"]
 
         assert request.status_code == 201
@@ -319,101 +318,6 @@ class TestRoutes(unittest.TestCase):
                 .json['tag'], WIERD_STRING
         )
 
-        
-
-
-
-        
-
-
-        
-
-
-
-
-
-    '''
-    def test_authentication(self):
-        
-
-        email = "test@test.com"
-        password = "test" 
-
-        # User creation test
-        self.assertEqual(
-            requests.post(self.users_route, json={'email': email, "password": password}).status_code,
-            201
-        )
-
-        # No duplicate user creation test
-        self.assertEqual(
-            requests.post(self.users_route, json={'email': email, "password": password}).status_code,
-            400
-        )
-
-
-        # Test incorrect password
-        authRespone = requests.get(self.login_route, auth=HTTPBasicAuth(email, "INCORRECT_PASSWORD"))
-        self.assertEqual(authRespone.status_code, 401)
-
-        # Test invalid email
-        authRespone = requests.get(self.login_route, auth=HTTPBasicAuth("INCORRECT_EMAIL", "INCORRECT_PASSWORD"))
-        self.assertEqual(authRespone.status_code, 401)
-
-        # Test valid credentials
-        authRespone = requests.get(self.login_route, auth=HTTPBasicAuth(email, password))
-        self.assertEqual(authRespone.status_code, 200)
-
-        # Throws error if response incorrect
-        valid_token = authRespone.json()["x-access-token"]
-        
-        # Missing token header
-        self.assertEqual(requests.get(self.auth_test_route).status_code, 401)
-
-        # With invalid token
-        headers = {"x-access-token": "Invalid token"}
-        self.assertEqual(requests.get(self.auth_test_route, headers=headers).status_code, 401)
-
-        # With valid token
-        headers = {"x-access-token": valid_token}
-        response = requests.get(self.auth_test_route, headers=headers)
-        self.assertEqual(response.status_code, 200)
-
-        # Correct user accessed
-        self.assertEqual(response.json()["user"]["email"], email)
-
-    def test_training_image(self):
-        email = "test2@test.com"
-        password = "pass"
-
-        requests.post(self.users_route, json={"email": email, "password": password})
-        token = requests.get(self.login_route, auth=HTTPBasicAuth(email, password)).json()["x-access-token"]
-
-        headers = {"x-access-token": token}
-
-        # Make sure that an un authenticated user cannot create an image
-        self.assertEqual(
-            requests.post(self.training_images_route).status_code,
-            401
-        )
-
-        # Test unability to create with missing data
-        self.assertEqual(
-            requests.post(self.training_images_route, headers=headers).status_code,
-            400
-        )
-        
-        image = None
-        with open("TEST_IMAGE.png") as im_steam:
-            image = im_steam.read()
-
-        # Test unability to create with missing data
-        self.assertEqual(
-            requests.post(self.training_images_route, headers=headers, files={"image": image.read()}).status_code,
-            201
-        )
-    '''
-
     def test_image(self):
         pass
         # print(self.client.get('/users').json)
@@ -473,14 +377,14 @@ class TestDatabase(unittest.TestCase):
         self.app_context.pop()
 
     def test_user(self):
-        u = User(email="test@example.com", password_plain="secure_pass")
+        u = User(email="test@example.com", password="secure_pass")
         self.assertEqual(u.email, "test@example.com")
         self.assertTrue(u.check_password("secure_pass"))
 
         # db.session.add(u)
 
     def test_training_image(self):
-        u = User(email="test@example.com", password_plain="secure_pass")
+        u = User(email="test@example.com", password="secure_pass")
 
         db.session.add(u)
 

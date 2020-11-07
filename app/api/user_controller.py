@@ -25,6 +25,8 @@ def get_users():
 def create_user():
     data = request.get_json() or {}
 
+    print("data", data["email"])
+
     if 'email' not in data or 'password' not in data:
         return make_bad_request("Email and password must be included in create request")
 
@@ -34,12 +36,42 @@ def create_user():
     if User.query.filter_by(email=data['email']).count() > 0:
         return make_bad_request("Email already in use")
 
-    user = User.from_dict(data)
+    user = None
+    try:
+        user = User.from_dict(data)
+    except TypeError as e:
+        return make_bad_request(str(e))
+    
+    
     db.session.add(user)
     db.session.commit()
 
+
     return user.to_dict(), 201
 
+# TODO Create simple testsd
+@blueprint.route('/users/<user_public_id>', methods=['PUT'])
+@login_required
+def update_user(current_user, user_public_id):
+    if current_user.public_id != user_public_id and not current_user.is_admin:
+        make_error_response(401, "Only admins can update users")
+     
+    user_to_update = User.query.filter_by(public_id=user_public_id).first_or_404()
+
+
+    # Testing required
+    if 'is_admin' in request.json:
+        # Check if user tries to update is_admin without current_user being an admin
+        if request.json['is_admin'] != user_to_update.is_admin and not current_user.is_admin:
+            return make_bad_request(401, "Only admins can promote or demote")
+    
+    try:
+        user_to_update.update_fields(request.json)
+    except TypeError as e:
+        return make_bad_request(str(e))
+
+    db.session.commit()
+    return user_to_update.to_dict()
 
 @blueprint.route('/users/<user_public_id>/demote', methods=['POST'])
 @login_required
@@ -51,7 +83,11 @@ def demote_user(current_user, user_public_id):
     if not user:
         return make_error_response(404, "User not found")
     
-    user.is_admin = False
+    user.update_fields(
+        dict(
+            is_admin=True
+        )
+    )
     db.session.commit()
     
     return {"status": "success"}, 201
