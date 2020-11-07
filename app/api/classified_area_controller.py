@@ -12,18 +12,31 @@ from .functions import api_paginate_query, get_pagination_page, make_bad_request
 
 from .auth import login_required
 
+
+def filter_by_training_image(query, training_image_public_id):
+    if training_image_public_id is None:
+        return query
+    
+    training_image = TrainingImage.query.filter_by(public_id=training_image_public_id).first()
+    if not training_image:
+        raise ValueError(f'No training image with the public id "{training_image_public_id}" exists')
+    
+    return query.filter_by(
+        training_image=training_image
+    )
+
+
 @blueprint.route("/classified_areas", methods=['GET'])
 def get_classified_areas():
     page = get_pagination_page()
     query = ClassifiedArea.query
 
     training_image_public_id = request.args.get("training_image")
-    if training_image_public_id:
-        training_image = TrainingImage.query.filter_by(public_id=training_image_public_id).first()
-        if training_image:
-            query = query.filter_by(training_image=training_image)
-        else:
-            return make_bad_request(f'No training image with id: {training_image_public_id} exists')
+
+    try:
+        query = filter_by_training_image(query, training_image_public_id)
+    except ValueError as e:
+        return make_error_response(404, str(e))
     
     return jsonify(api_paginate_query(query, page=page, endpoint="api.get_classified_areas"))
 
@@ -32,7 +45,7 @@ def get_classified_areas():
 def update_classified_area(current_user, public_id):
     area = ClassifiedArea.query.filter_by(public_id=public_id).first_or_404()
     
-    if area.training_image.user != current_user and not current_user.is_admin:
+    if not area.modifiable_by(current_user):
         return make_error_response(401, "Only admins can update other users classified_areas")
     
     try:
@@ -50,7 +63,6 @@ def get_classified_area(public_id):
     area = ClassifiedArea.query.filter_by(public_id=public_id).first_or_404()
     return area.to_dict()
 
-# TODO Authorization for POST
 @blueprint.route("/classified_areas", methods=['POST'])
 @login_required
 def create_classified_area(current_user):
@@ -65,7 +77,7 @@ def create_classified_area(current_user):
     except (ValueError, TypeError) as e:
         return make_bad_request(str(e))
     
-    if area.training_image.user != current_user and not current_user.is_admin:
+    if not area.modifiable_by(current_user):
         return make_error_response(401, "You can only update your own classified_areas, only admins can update other users areas")
     
     db.session.add(area)
@@ -73,7 +85,7 @@ def create_classified_area(current_user):
 
     return jsonify(area.to_dict()), 201
 
-@blueprint.route('/classified_areas/<public_id>/training_image_cropped')
+@blueprint.route('/classified_areas/<string:public_id>/training_image_cropped')
 def get_classified_area_image(public_id):
     area = ClassifiedArea.query.filter_by(public_id=public_id).first_or_404()
 
@@ -96,7 +108,7 @@ def get_classified_area_image(public_id):
 def delete_classified_area(current_user, public_id):
     area = ClassifiedArea.query.filter_by(public_id=public_id).first_or_404()
 
-    if area.training_image.user != current_user and not current_user.is_admin:
+    if not area.modifiable_by(current_user):
         return make_bad_request(401, "You can only delete your own images since you are not an admin")
     
     db.session.delete(area)

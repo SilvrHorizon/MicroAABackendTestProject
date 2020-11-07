@@ -55,9 +55,7 @@ def update_user(current_user, user_public_id):
     if not user_to_update.modifiable_by(current_user):
         return make_error_response(401, "You do not have the permission to update this user")
 
-    # Testing required
-    if 'is_admin' in request.json:
-        
+    if 'is_admin' in request.json:        
         # Check if user tries to update is_admin without current_user being an admin
         if request.json['is_admin'] != user_to_update.is_admin and not current_user.is_admin:
             return make_bad_request(401, "Only admins can promote or demote")
@@ -98,8 +96,8 @@ def demote_user(current_user, user_public_id):
             is_admin=True
         )
     )
+
     db.session.commit()
-    
     return {"status": "success"}, 201
 
 
