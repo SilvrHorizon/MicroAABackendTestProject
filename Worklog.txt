@@ -27,4 +27,6 @@
 
 2020-11-07 16:16-16:48 d= 0h30  : PUT added to resource classified_area
 2020-11-07 18:17-18:46 d= 0h30  : DELETE added to all routes
-2020-11-07 21:44-
+2020-11-07 21:44-22:17 d= 0h32  : Authorization to all paths in need
+
+2020-11-07 22:18-22:53 d= 0h34  : Test improvements and to_dict consistencies

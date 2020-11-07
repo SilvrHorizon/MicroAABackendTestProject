@@ -68,11 +68,11 @@ class TestUser():
         return self.post('/training_images', data=data)
         
 
-    def get_create_classified_area_response(self, image="", x_position=0, y_position=0, width=0, height=0, tag=None):
+    def get_create_classified_area_response(self, training_image="", x_position=0, y_position=0, width=0, height=0, tag=None):
         return self.post(
             '/classified_areas',
             json={
-                'training_image': image,
+                'training_image': training_image,
 
                 'x_position': x_position,
                 'y_position': y_position,
@@ -104,12 +104,8 @@ def get_file_binary(path):
     return file
 
 class TestRoutes(unittest.TestCase):
-    def assertResponse(self, response, status_code):
-        self.assertEqual(response.status_code, status_code)
-
-    
-        
-
+    def response_resolves_to(self, response, status_code):
+        return response.status_code == status_code
 
     def setUp(self):
         self.app = create_app(TestConfig)
@@ -128,41 +124,69 @@ class TestRoutes(unittest.TestCase):
         self.user = TestUser(self.app, f'{secrets.token_hex(16).lower()}@helllo.com', "password")
         self.user2 = TestUser(self.app, f'{secrets.token_hex(16).lower()}@helllo.com', "password")
 
+        self.admin = TestUser(self.app, f'{secrets.token_hex(16).lower()}@helllo.com', 'password')
+        
+        User.query.filter_by(public_id=self.admin.public_id).first().is_admin = True
+        db.session.commit()
+
+
         self.unauthenticatedUser = TestUser(self.app, f'{secrets.token_hex(16).lower()}@helllo.com', "pass", authenticate=False)
       
     def test_authentication(self):
         # No credentials passed
+        self.assertTrue(
+        self.response_resolves_to(self.client.get('/secret_protected_route'), 401))
 
-        self.assertResponse(self.client.get('/secret_protected_route'), 401)
-        
-        self.assertResponse(self.unauthenticatedUser.get('/secret_protected_route'), 401)
+        # Invalid credentials
+        self.assertTrue(
+        self.response_resolves_to(self.unauthenticatedUser.get('/secret_protected_route'), 401))
 
-        # self.assertResponse()
-        self.assertResponse(self.user.get('/secret_protected_route'), 200)
+        # Valid credentials
+        self.assertTrue(
+        self.response_resolves_to(self.user.get('/secret_protected_route'), 200))
 
     def test_image_upload(self):
-        # Test that image upload works
-        self.assertResponse(self.user.get_create_image_response(
-            get_file_binary('TEST_IMAGE.png')
-        ), 201)
-
-        #With unauthorized user
-        self.assertResponse(self.unauthenticatedUser.get_create_image_response(
+        #Test with unauthorized user
+        self.assertTrue(
+        self.response_resolves_to(self.unauthenticatedUser.get_create_image_response(
             get_file_binary('TEST_IMAGE.png')
         ), 401)
+        )
 
-        self.assertResponse(self.user.get_create_image_response(
+        # Test with invalid file
+        self.assertTrue(
+        self.response_resolves_to(self.user.get_create_image_response(
+            get_file_binary('tests.py')
+        ), 400))
+
+        # Make sure the user cannot upload an image to another user
+        self.assertTrue(
+        self.response_resolves_to(self.user.get_create_image_response(
             get_file_binary('TEST_IMAGE.png'),
             user=self.user2.public_id
-        ), 401)
+        ), 401))
 
-        self.assertResponse(self.user.get_create_image_response(
-            get_file_binary('tests.py')
-        ), 400)
+        # Check that admins can create images that belong to other users
+        self.assertTrue(
+        self.response_resolves_to(
+            self.admin.get_create_image_response(
+                get_file_binary('TEST_IMAGE.png'),
+                user=self.user2.public_id
+            ), 201
+        ))
 
+        # Test that image upload works
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_image_response(
+                get_file_binary('TEST_IMAGE.png')
+            ), 201
+
+        ))
 
         image_url = self.user.get_create_image_response(get_file_binary('TEST_IMAGE.png')).json['image_url']
         
+        # Check that the file uploaded got saved propperly
         self.assertEqual(
             self.user.get(image_url).data,
             get_file_binary('TEST_IMAGE.png')
@@ -173,56 +197,81 @@ class TestRoutes(unittest.TestCase):
             get_file_binary('TEST_IMAGE.png')
         ).json["public_id"]
 
-        self.assertResponse(
-            self.user.get_create_classified_area_response(image="INVALID_ID", x_position=-1, y_position=1, width=1, height=1, tag="Dog"),
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image="INVALID_ID", x_position=-1, y_position=1, width=1, height=1, tag="Dog"),
             400
-        )
+        ))
 
-        self.assertResponse(
-            self.user.get_create_classified_area_response(image=image_public_id, x_position=-1, y_position=1, width=1, height=1, tag="Dog"),
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=-1, y_position=1, width=1, height=1, tag="Dog"),
             400
-        )
+        ))
 
-        self.assertResponse(
-            self.user.get_create_classified_area_response(image=image_public_id, x_position=1, y_position=-1, width=1, height=1, tag="Dog"),
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=-1, width=1, height=1, tag="Dog"),
             400
-        )
+        ))
 
-        self.assertResponse(
-            self.user.get_create_classified_area_response(image=image_public_id, x_position=1, y_position=1, width=-1, height=1, tag="Dog"),
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=-1, height=1, tag="Dog"),
             400
-        )
+        ))
 
-        self.assertResponse(
-            self.user.get_create_classified_area_response(image=image_public_id, x_position=1, y_position=1, width=1, height=-1, tag="Dog"),
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=1, height=-1, tag="Dog"),
             400
-        )
-        self.assertResponse(
-            self.user.get_create_classified_area_response(image=image_public_id, x_position=1, y_position=1, width=200, height=1, tag="Dog"),
-            400
-        )
+        ))
 
-        self.assertResponse(
-            self.user.get_create_classified_area_response(image=image_public_id, x_position=1, y_position=1, width=1, height=200, tag="Dog"),
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=200, height=1, tag="Dog"),
             400
-        )
+        ))
 
-        response = self.user.get_create_classified_area_response(image=image_public_id, x_position=1, y_position=1, width=1, height=1, tag="Dog")
-        self.assertResponse(
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=1, height=200, tag="Dog"),
+            400
+        ))
+
+
+        valid_arguments = dict(
+            training_image=image_public_id, x_position=1, y_position=1, width=1, height=1, tag="dog"
+        )
+        response = self.user.get_create_classified_area_response(**valid_arguments)
+        
+        self.assertTrue(
+        self.response_resolves_to(
             response,
             201
-        )
+        ))
 
-        self.assertResponse(
+        self.assertTrue(
+        self.response_resolves_to(
             self.user.get(f'/classified_areas/{response.json["public_id"]}'),
             200
-        )
+        ))
+
+        for key in valid_arguments:
+            self.assertTrue(key in response.json)
+
+            self.assertEqual(
+                valid_arguments[key], response.json[key]
+            )
+
 
         WIERD_STRING = "(っ◔◡◔)っ ♥ how will the db manage? ♥".lower()
         self.assertEqual(
-            self.user.get(route=f'/classified_areas/{self.user.get_create_classified_area_response(image=image_public_id, x_position=1, y_position=1, width=1, height=1, tag=WIERD_STRING).json["public_id"]}')
+            self.user.get(route=f'/classified_areas/{self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=1, height=1, tag=WIERD_STRING).json["public_id"]}')
                 .json['tag'], WIERD_STRING
         )
+
+
 
     def test_image(self):
         pass
