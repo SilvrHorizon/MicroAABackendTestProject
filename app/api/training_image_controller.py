@@ -36,16 +36,11 @@ def get_training_images():
 @blueprint.route("/training_images", methods=['POST'])
 @login_required
 def create_training_image(current_user):
-    data = request.form.copy()
-    
-    # Check if dictionary is empty and if so load the data from passed json instead
-    if not data:
-        data = {}
-
+    data = request.form.copy() if request.form else {}
     if 'user' not in data:
         data['user'] = current_user.public_id
     
-    if not current_user.is_admin and data['user'] != current_user.public_id:
+    if data['user'] != current_user.public_id and not current_user.is_admin:
         return make_error_response(401, "Only admins can create images that belong to other users. You can only create an image that belongs to you") 
 
     if 'image' not in request.files:
@@ -66,7 +61,4 @@ def create_training_image(current_user):
     
     db.session.add(dbImage)
     db.session.commit()
-
-
-
     return jsonify(dbImage.to_dict()), 201

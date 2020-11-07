@@ -24,3 +24,5 @@
 2020-11-06 29:46-21:00 d= 0h14  : PUT user route
 2020-11-07 00:18-00:58 d= 0h40  : Input validation
 2020-11-07 10:24-11:26 d= 1h02  : Input validation continuation
+
+2020-11-07 16:16-16:48 d= 0h30  : PUT added to resource classified_area
