@@ -59,7 +59,7 @@ class User(db.Model):
             'is_admin': self.is_admin,
             'public_id': self.public_id,
             '_links': {
-                'this': url_for("api.get_user", public_id=self.public_id),
+                'self': url_for("api.get_user", public_id=self.public_id),
                 'training_images': url_for("api.get_training_images", user=self.public_id)
             }
         }
@@ -144,6 +144,9 @@ class TrainingImage(db.Model):
             "image_url": self.get_image_url(),
             "width": self.width,
             "height": self.height,
+            
+            "user": self.user.public_id,
+            
             "_links": {
                 "self": url_for("api.get_training_image", public_id=self.public_id),
                 "user": url_for("api.get_user", public_id=self.user.public_id),
@@ -190,6 +193,8 @@ class ClassifiedArea(db.Model):
             "tag": self.tag,
 
             "public_id": self.public_id,
+
+            "training_image": self.training_image.public_id,
 
             "_links": {
                 "self": url_for("api.get_classified_area", public_id=self.public_id),
