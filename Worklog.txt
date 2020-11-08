@@ -30,3 +30,4 @@
 2020-11-07 21:44-22:17 d= 0h32  : Authorization to all paths in need
 
 2020-11-07 22:18-22:53 d= 0h34  : Test improvements and to_dict consistencies
+2020-11-08 18:05-19:35 d= 1h30  : Test writing

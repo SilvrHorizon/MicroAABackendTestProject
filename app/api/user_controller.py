@@ -2,7 +2,6 @@ from flask import jsonify, request
 
 from app import db
 from app.models import User
-from app.utilities import email_is_valid
 
 from . import blueprint
 from .functions import api_paginate_query, get_pagination_page, make_bad_request, make_error_response
@@ -27,9 +26,6 @@ def create_user():
     if 'email' not in data or 'password' not in data:
         return make_bad_request("Email and password must be included in create request")
 
-    if not email_is_valid(data["email"]):
-        return make_bad_request("Invalid email")
-
     if User.query.filter_by(email=data['email']).count() > 0:
         return make_bad_request("Email already in use")
 
@@ -37,6 +33,8 @@ def create_user():
     try:
         user = User.from_dict(data)
     except TypeError as e:
+        return make_bad_request(str(e))
+    except ValueError as e:
         return make_bad_request(str(e))
     
     
@@ -46,7 +44,6 @@ def create_user():
 
     return user.to_dict(), 201
 
-# TODO Create simple testsd
 @blueprint.route('/users/<user_public_id>', methods=['PUT'])
 @login_required
 def update_user(current_user, user_public_id):
@@ -63,6 +60,8 @@ def update_user(current_user, user_public_id):
     try:
         user_to_update.update_fields(request.json)
     except TypeError as e:
+        return make_bad_request(str(e))
+    except ValueError as e:
         return make_bad_request(str(e))
 
     db.session.commit()

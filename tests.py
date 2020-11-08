@@ -287,7 +287,6 @@ class TestRoutes(unittest.TestCase):
             training_image=image_public_id, x_position=1, y_position=1, width=1, height=1, tag="dog"
         )
         response = self.user.get_create_classified_area_response(**valid_arguments)
-        
         self.assertTrue(
         self.response_resolves_to(
             response,
@@ -315,17 +314,178 @@ class TestRoutes(unittest.TestCase):
         )
 
 
+    def test_put_classified_area(self):
+        image = self.user.get_create_image_response(
+            image_binary=get_file_binary("TEST_IMAGE.png")
+        ).json['public_id']
 
-    def test_put_user(self):
-        pass
-    
-    def test_promote_demote_user(self):
-        # Just check incase the user some how has become an admin before the test
-        print(
-            self.user.public_id,
-            self.client.get(f'/users/{self.user.public_id}').json
+        area = self.user.get_create_classified_area_response(
+            training_image=image,
+
+            x_position=0,
+            y_position=0,
+            
+            width=0,
+            height=0,
+        ).json['public_id']
+
+        json_data = dict(
+            x_position=1,
+            y_position=2,
+            
+            width=1,
+            height=1,
+
+            tag="hello"
         )
 
+        self.assertTrue(
+            self.response_resolves_to(
+                self.user2.put(f'/classified_areas/{area}',
+                    json=json_data), 401
+            )
+        )
+
+        print(
+                self.user.put(f'/classified_areas/{area}',
+                    json=json_data))
+        
+        self.assertTrue(
+            self.response_resolves_to(
+                self.user.put(f'/classified_areas/{area}',
+                    json=json_data), 200
+            )
+        )
+
+        in_db = self.client.get(f'/classified_areas/{area}').json
+
+        for key in json_data:
+            self.assertEqual(json_data[key], in_db[key])
+
+        json_data2 = dict(
+            x_position=9,
+            y_position=9,
+            
+            width=9,
+            height=9,
+
+            tag="newtag"
+        )
+        
+        self.assertTrue(
+            self.response_resolves_to(
+                self.admin.put(f'/classified_areas/{area}',
+                    json=json_data2), 200
+            )
+        )
+
+        in_db = self.client.get(f'/classified_areas/{area}').json
+
+        for key in json_data2:
+            self.assertEqual(json_data2[key], in_db[key])
+
+
+
+        
+
+
+    def test_put_user(self):
+        
+
+        self.assertTrue(
+            self.response_resolves_to(
+                self.user.put(
+                    f'/users/{self.user.public_id}',
+                    {
+                        "email": "bad_email",
+                        "password": "pass"
+                    }
+                ),
+                400
+            )
+        )
+
+        self.assertTrue(
+            self.response_resolves_to(
+                self.user.put(
+                    f'/users/{self.user.public_id}',
+                    {
+                        "email": 2003,
+                        "password": "pass"
+                    }
+                ),
+                400
+            )
+        )
+
+        self.assertTrue(
+            self.response_resolves_to(
+                self.user.put(
+                    f'/users/{self.user.public_id}',
+                    {
+                        "email": "email@mail.com",
+                        "password": True
+                    }
+                ),
+                400
+            )
+        )
+
+
+        passed_json = {
+            "email": "RANDOMTESTTHING@test.com",
+            "password": "hello"
+        }
+
+        self.assertTrue(
+            self.response_resolves_to(
+                self.user.put(
+                    f'/users/{self.user.public_id}',
+                    passed_json
+                ),
+                200
+            )
+        )
+
+        from_db = User.query.filter_by(public_id=self.user.public_id).first()
+        self.assertEqual(from_db.email, passed_json["email"])
+        self.assertTrue(from_db.check_password(passed_json["password"]))
+
+
+        passed_json = {
+            "email": "ADMINWILLCHANGETHIS@test.com",
+            "password": "and this too"
+        }
+
+        # Check that a non admin cannot change
+        self.assertTrue(
+            self.response_resolves_to(
+                self.user2.put(
+                    f'/users/{self.user.public_id}',
+                    passed_json
+                ),
+                401
+            )
+        )
+
+
+        self.assertTrue(
+            self.response_resolves_to(
+                self.admin.put(
+                    f'/users/{self.user.public_id}',
+                    passed_json
+                ),
+                200
+            )
+        )
+
+        from_db = User.query.filter_by(public_id=self.user.public_id).first()
+        self.assertEqual(from_db.email, passed_json["email"])
+        self.assertTrue(from_db.check_password(passed_json["password"]))
+
+
+    def test_promote_demote_user(self):
+        # Just check incase the user some how has become an admin before the test
         self.assertEqual(
             self.client.get(f'/users/{self.user.public_id}').json["is_admin"],
             False
@@ -342,7 +502,6 @@ class TestRoutes(unittest.TestCase):
             self.client.get(f'/users/{self.user.public_id}').json["is_admin"],
             True
         )
-
         self.assertTrue(
             self.response_resolves_to(
                 self.admin.post(f'/users/{self.user.public_id}/demote'),

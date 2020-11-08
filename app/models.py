@@ -9,6 +9,8 @@ from uuid import uuid4
 from PIL import Image as PILImage
 from PIL import UnidentifiedImageError
 
+from .utilities import valid_email
+
 
 def generateUuid():
     return uuid4().hex
@@ -65,14 +67,25 @@ class User(db.Model):
         }
 
     def update_fields(self, data):
-        User.validate_argument_types(data)
-
+        User.validate_arguments(data)
         for field in data:
             if field in User.UPDATABLE_ATTRIBUTES:
                 setattr(self, field, data[field])
         
         if 'password' in data:
             self.set_password(data['password'])
+
+    @staticmethod
+    def validate_arguments(dictionary):
+        User.validate_argument_types(dictionary)
+        User.validate_argument_values(dictionary)
+
+    @staticmethod
+    def validate_argument_values(dictionary):
+
+        if 'email' in dictionary:
+            if not valid_email(dictionary["email"]):
+                raise ValueError("Invalid email address!")
 
     @staticmethod
     def validate_argument_types(dictionary):
@@ -163,7 +176,7 @@ class ClassifiedArea(db.Model):
         'width': int,
         'height': int,
         'tag': (str, type(None)),
-        'training_image': (TrainingImage, str)
+        'training_image': (TrainingImage)
     }
 
 
@@ -205,6 +218,7 @@ class ClassifiedArea(db.Model):
         }
 
     def __init__(self, x_position, y_position, width, height, training_image, tag=None):
+        print("inint", training_image)
         self.update_attributes(
             dict(
                 x_position=x_position,
@@ -236,6 +250,7 @@ class ClassifiedArea(db.Model):
 
     @staticmethod
     def validate_argument_types(arguments):
+
         for field in arguments:
             if field in ClassifiedArea.UPDATABLE_ATTRIBUTES:
                 if not isinstance(arguments[field], ClassifiedArea.ATTRIBUTE_TYPES[field]):
@@ -257,15 +272,23 @@ class ClassifiedArea(db.Model):
             raise ValueError("Width and height cannot be below 0")
 
     @staticmethod
-    def convert_traning_image_to_object_if_string(dictionary):
-        if isinstance(dictionary['training_image'], str):
-            dictionary['training_image'] = TrainingImage.query.filter_by(public_id=dictionary['training_image']).first()
+    def convert_traning_image_to_object_if_string(training_image):
+        if isinstance(training_image, str):
+            training_image = TrainingImage.query.filter_by(public_id=training_image).first()
         
-        if not dictionary['training_image']:
+        if training_image is None:
             raise ValueError("Passed traning image does not exist")
 
+        return training_image
+
+    def fill_missing_attributes(self, dictionary):
+        for attribute in ClassifiedArea.UPDATABLE_ATTRIBUTES:
+            if attribute not in dictionary:
+                dictionary[attribute] = getattr(self, attribute)
+
+
     def update_attributes(self, dictionary):
-        self.convert_traning_image_to_object_if_string(dictionary)
+        self.fill_missing_attributes(dictionary)
         self.validate_arguments(dictionary)
 
         for field in dictionary:
@@ -275,7 +298,9 @@ class ClassifiedArea(db.Model):
 
     @staticmethod
     def from_dict(data):
-        data['training_image'] = TrainingImage.query.filter_by(public_id=data["training_image"]).first()
+        data['training_image'] = ClassifiedArea.convert_traning_image_to_object_if_string(data['training_image'])
+
+
         area = ClassifiedArea(
             **data
         )

@@ -1,8 +1,8 @@
-"""Users table, Training image table, Classified area table
+"""Users table, Classified area table and TrainingImage table
 
-Revision ID: d7abea49ea6d
-Revises: 40383b02cd54
-Create Date: 2020-11-07 16:55:41.967485
+Revision ID: 1ac09493fd08
+Revises: 
+Create Date: 2020-11-08 19:19:26.446501
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd7abea49ea6d'
-down_revision = '40383b02cd54'
+revision = '1ac09493fd08'
+down_revision = None
 branch_labels = None
 depends_on = None
 
