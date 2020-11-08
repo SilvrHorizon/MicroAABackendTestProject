@@ -95,6 +95,13 @@ class TestUser():
             data=data)
 
         return result
+
+    def put(self, route="", json=None, data=None):
+        result = self.client.put(route, headers={'x-access-token': self.token},
+            json=json,
+            data=data)
+
+        return result
         
 
 def get_file_binary(path):
@@ -239,6 +246,42 @@ class TestRoutes(unittest.TestCase):
             400
         ))
 
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=True, x_position=1, y_position=1, width=1, height=200, tag="Dog"),
+            400
+        ))
+
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position="Hello", y_position=1, width=1, height=200, tag="Dog"),
+            400
+        ))
+
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=True, width=1, height=200, tag="Dog"),
+            400
+        ))
+
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=False, height=200, tag="Dog"),
+            400
+        ))
+
+
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=1, height=None, tag="Dog"),
+            400
+        ))
+
+        self.assertTrue(
+        self.response_resolves_to(
+            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=1, height=1, tag=False),
+            400
+        ))
 
         valid_arguments = dict(
             training_image=image_public_id, x_position=1, y_position=1, width=1, height=1, tag="dog"
@@ -273,10 +316,44 @@ class TestRoutes(unittest.TestCase):
 
 
 
-    def test_image(self):
+    def test_put_user(self):
         pass
-         
+    
+    def test_promote_demote_user(self):
+        # Just check incase the user some how has become an admin before the test
+        print(
+            self.user.public_id,
+            self.client.get(f'/users/{self.user.public_id}').json
+        )
 
+        self.assertEqual(
+            self.client.get(f'/users/{self.user.public_id}').json["is_admin"],
+            False
+        )
+
+        self.assertTrue(
+            self.response_resolves_to(
+                self.admin.post(f'/users/{self.user.public_id}/promote'),
+                200
+            )
+        )
+
+        self.assertEqual(
+            self.client.get(f'/users/{self.user.public_id}').json["is_admin"],
+            True
+        )
+
+        self.assertTrue(
+            self.response_resolves_to(
+                self.admin.post(f'/users/{self.user.public_id}/demote'),
+                200
+            )
+        )
+
+        self.assertEqual(
+            self.client.get(f'/users/{self.user.public_id}').json["is_admin"],
+            False
+        )
 
 
     def remove_test_images(self):
