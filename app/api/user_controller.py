@@ -93,12 +93,12 @@ def demote_user(current_user, user_public_id):
     
     user.update_fields(
         dict(
-            is_admin=True
+            is_admin=False
         )
     )
 
     db.session.commit()
-    return {"status": "success"}, 201
+    return {"status": "success"}, 200
 
 
 
@@ -113,7 +113,6 @@ def promote_user(current_user, user_public_id):
         return make_error_response(404, "User not found")
     
     user.is_admin = True
-
     db.session.commit()
-    return {"status": "success"}, 201
+    return {"status": "success"}, 200
 
