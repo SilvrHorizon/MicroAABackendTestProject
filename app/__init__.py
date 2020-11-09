@@ -1,18 +1,19 @@
 from flask import Flask
-from app.extensions import db, migrate
+from .extensions import db, migrate, register_app as register_app_to_extensions
 
-from .api import blueprint as api_blueprint
+def register_blueprints(app):
+    from .api import blueprint as api_blueprint
+    app.register_blueprint(api_blueprint)
+
+    from .errors import blueprint as errors_blueprint
+    app.register_blueprint(errors_blueprint)
+
 
 def create_app(config):
     app = Flask(__name__)
     app.config.from_object(config)
 
-    # TEMPORARY
-    app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///C:\\Users\\Jonat\\OneDrive\\Skrivbord\\MicroAABackendTestCase\\app.db'
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-    db.init_app(app)
-    migrate.init_app(app)
-
-    app.register_blueprint(api_blueprint)
+    register_app_to_extensions(app)
+    register_blueprints(app)
+    
     return app

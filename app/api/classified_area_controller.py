@@ -1,4 +1,4 @@
-from flask import jsonify, request, send_file
+from flask import abort, current_app, jsonify, request, send_file
 
 import io
 import PIL
@@ -8,18 +8,25 @@ from app.models import ClassifiedArea, TrainingImage
 
 
 from . import blueprint
-from .functions import api_paginate_query, get_pagination_page, make_bad_request, make_error_response
+from .errors import make_error_response, make_bad_request_response, make_unauthorized_response
+from .pagination import api_paginate_query, get_pagination_page
+
+
 
 from .auth import login_required
 
 
-def filter_by_training_image(query, training_image_public_id):
+# Partially bad name, read function for better understanding 
+def filter_by_training_image_or_404(query, training_image_public_id):
+    
+    # If there is no specific training image to filter by, return the query as it is
     if training_image_public_id is None:
         return query
     
     training_image = TrainingImage.query.filter_by(public_id=training_image_public_id).first()
+    
     if not training_image:
-        raise ValueError(f'No training image with the public id "{training_image_public_id}" exists')
+        abort(404, f'No training image with the public id "{training_image_public_id}" exists')
     
     return query.filter_by(
         training_image=training_image
@@ -33,12 +40,8 @@ def get_classified_areas():
 
     training_image_public_id = request.args.get("training_image")
 
-    try:
-        query = filter_by_training_image(query, training_image_public_id)
-    except ValueError as e:
-        return make_error_response(404, str(e))
-    
-    return jsonify(api_paginate_query(query, page=page, endpoint="api.get_classified_areas"))
+    query = filter_by_training_image_or_404(query, training_image_public_id)
+    return jsonify(api_paginate_query(query, page=page, per_page=current_app.config["ITEMS_PER_PAGE"], endpoint="api.get_classified_areas"))
 
 @blueprint.route('/classified_areas/<string:public_id>', methods=['PUT'])
 @login_required
@@ -46,14 +49,15 @@ def update_classified_area(current_user, public_id):
     area = ClassifiedArea.query.filter_by(public_id=public_id).first_or_404()
     
     if not area.modifiable_by(current_user):
-        return make_error_response(401, "Only admins can update other users classified_areas")
+        return make_unauthorized_response("Only admins can update other users classified_areas")
     
     try:
         area.update_attributes(request.json)
     except TypeError as e:
-        return make_error_response(400, str(e))
+        db.session.rollback()
+        return make_bad_request_response(str(e))
+    
     db.session.commit()
-
     return area.to_dict()
 
 
@@ -63,22 +67,27 @@ def get_classified_area(public_id):
     area = ClassifiedArea.query.filter_by(public_id=public_id).first_or_404()
     return area.to_dict()
 
+
+def abort_if_missing_fields(data):
+    if 'training_image' not in data or 'x_position' not in data or 'y_position' not in data or 'width' not in data or 'height' not in data:
+        abort(400, "training_image, x_position, y_position, width and height must be included") 
+
+
 @blueprint.route("/classified_areas", methods=['POST'])
 @login_required
 def create_classified_area(current_user):
     data = request.get_json() or {}
 
-    if 'training_image' not in data or 'x_position' not in data or 'y_position' not in data or 'width' not in data or 'height' not in data:
-        return make_bad_request("training_image, x_position, y_position, width and height must be included")
+    abort_if_missing_fields(data)
 
     area = None
     try:
         area = ClassifiedArea.from_dict(data)
     except (ValueError, TypeError) as e:
-        return make_bad_request(str(e))
+        return make_bad_request_response(str(e))
     
     if not area.modifiable_by(current_user):
-        return make_error_response(401, "You can only update your own classified_areas, only admins can update other users areas")
+        return make_unauthorized_response("You can only update your own classified_areas, only admins can update other users areas")
     
     db.session.add(area)
     db.session.commit()
@@ -109,8 +118,8 @@ def delete_classified_area(current_user, public_id):
     area = ClassifiedArea.query.filter_by(public_id=public_id).first_or_404()
 
     if not area.modifiable_by(current_user):
-        return make_bad_request(401, "You can only delete your own images since you are not an admin")
-    
+        return make_unauthorized_response(401, "You can only delete your own images since you are not an admin")
+
     db.session.delete(area)
     db.session.commit()
 

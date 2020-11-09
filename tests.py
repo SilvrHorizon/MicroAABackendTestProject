@@ -345,10 +345,6 @@ class TestRoutes(unittest.TestCase):
                     json=json_data), 401
             )
         )
-
-        print(
-                self.user.put(f'/classified_areas/{area}',
-                    json=json_data))
         
         self.assertTrue(
             self.response_resolves_to(

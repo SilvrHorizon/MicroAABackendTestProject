@@ -1,8 +1,6 @@
 2020-11-02 16:20-17:10 d= 0h50	: Setup
-
 2020-11-02 17:20-17:40 d= 0h20	: Database models
 2020-11-02 17:55-18:25 d= 0h30	: Database models
-
 2020-11-02 18:25-18:32 d= 0h07	: Database testing
 2020-11-02 19:42-19:46 d= 0h04	: Created simple database tests
 2020-11-02 22:15-20:40 d= 0h35	: Database structure updated and tests improved
@@ -22,12 +20,15 @@
 
 2020-11-06 18:16-19:24 d= 0h08  : Writing tests; continuation
 2020-11-06 29:46-21:00 d= 0h14  : PUT user route
+
 2020-11-07 00:18-00:58 d= 0h40  : Input validation
 2020-11-07 10:24-11:26 d= 1h02  : Input validation continuation
-
 2020-11-07 16:16-16:48 d= 0h30  : PUT added to resource classified_area
 2020-11-07 18:17-18:46 d= 0h30  : DELETE added to all routes
 2020-11-07 21:44-22:17 d= 0h32  : Authorization to all paths in need
-
 2020-11-07 22:18-22:53 d= 0h34  : Test improvements and to_dict consistencies
+
 2020-11-08 18:05-19:35 d= 1h30  : Test writing
+2020-11-08 21:54-23:01 d= 1h06  : Refactoring
+
+2020-11-09 15:50-16:41 d= 0h50  : Refactoring

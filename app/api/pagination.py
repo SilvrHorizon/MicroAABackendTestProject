@@ -2,7 +2,7 @@ from flask import jsonify, request, url_for
 from werkzeug.http import HTTP_STATUS_CODES
 
 
-def api_paginate_query(query, endpoint, page, per_page=1, **kwargs):
+def api_paginate_query(query, endpoint, page, per_page, **kwargs):
     paginated = query.paginate(page, per_page, False)
 
     return {
@@ -10,6 +10,7 @@ def api_paginate_query(query, endpoint, page, per_page=1, **kwargs):
         "_meta": {
             "page": page,
             "per_page": per_page,
+            "total_pages": paginated.pages,
             "total_items": paginated.total
         },
         "_links": {
@@ -30,17 +31,3 @@ def get_pagination_page():
             page = 1
     return page
 
-def make_error_response(status_code, message=None):
-    data = {
-        'error': HTTP_STATUS_CODES.get(status_code, 'Unknown error')
-    }
-
-    if message:
-        data["message"] = message
-
-    response = jsonify(data)
-    response.status_code = status_code
-    return response
-
-def make_bad_request(message=None):
-    return make_error_response(status_code=400, message=message)
