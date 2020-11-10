@@ -7,7 +7,7 @@ from app import db
 from PIL import Image as PILImage, UnidentifiedImageError
 from uuid import uuid4
 
-from .utilities import valid_email
+from .utilities import valid_email, valid_password
 
 
 def generateUuid():
@@ -31,16 +31,12 @@ class User(db.Model):
     
     training_images = db.relationship("TrainingImage", backref="user", cascade="all,delete", lazy='dynamic')
 
-    def __init__(self, email=None, password=None, is_admin=False):
+    def __init__(self, **kwargs):
         super()
         self.public_id = generateUuid()
 
         self.update_attributes(
-            dict(
-                email=email,
-                is_admin=is_admin,
-                password=password,
-            )
+            kwargs
         )
 
     def update_attributes(self, data):
@@ -96,6 +92,10 @@ class User(db.Model):
         if 'email' in dictionary:
             if not valid_email(dictionary["email"]):
                 raise ValueError("Invalid email address!")
+        
+        if 'password' in dictionary:
+            if not valid_password(dictionary['password']):
+                raise ValueError("Invalid password!")
 
 
 
@@ -197,18 +197,10 @@ class ClassifiedArea(db.Model):
 
     image_id = db.Column(db.Integer, db.ForeignKey(f'{TrainingImage.__tablename__}.id'))
     
-    def __init__(self, x_position, y_position, width, height, training_image, tag=None):
+    def __init__(self, **kwargs):
+        
         self.update_attributes(
-            dict(
-                x_position=x_position,
-                y_position=y_position,
-
-                width=width,
-                height=height,
-
-                tag=tag,
-                training_image=training_image
-            )
+            kwargs
         )
 
     def update_attributes(self, dictionary):
@@ -281,8 +273,8 @@ class ClassifiedArea(db.Model):
         if arguments['x_position'] + arguments['width'] > arguments['training_image'].width or arguments['y_position'] + arguments['height'] > arguments['training_image'].height:
             raise ValueError("ClassifiedAreas cannot extend out of the bounds the parent image!")
 
-        if arguments['width'] < 0 or arguments['height'] < 0:
-            raise ValueError("Width and height cannot be below 0")
+        if arguments['width'] < 1 or arguments['height'] < 1:
+            raise ValueError("Width and height cannot be below 1px")
     
     @staticmethod
     def raise_invalid_argument_type_exception(arguments, argument):

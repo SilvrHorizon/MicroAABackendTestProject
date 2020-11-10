@@ -10,3 +10,12 @@ def valid_email(to_check):
     if(re.search(email_regex, to_check)):  
         return True
     return False
+
+def valid_password(to_check):
+    if not isinstance(to_check, str):
+        return False
+
+    if len(to_check) < 1:
+        return False
+    
+    return True

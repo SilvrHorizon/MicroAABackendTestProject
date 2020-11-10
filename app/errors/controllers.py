@@ -10,12 +10,6 @@ def wants_json_response():
     return request.accept_mimetypes['application/json'] >= \
         request.accept_mimetypes['text/html']
 
-@blueprint.route('/hello')
-def hello():
-    return "hello"
-
-
-
 @blueprint.app_errorhandler(HTTPException)
 def handle_exception(e):
     return api_error_response(e.code, e.description)
