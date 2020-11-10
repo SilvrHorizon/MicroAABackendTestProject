@@ -55,7 +55,9 @@ class User(db.Model):
             'public_id': self.public_id,
             '_links': {
                 'self': url_for("api.get_user", public_id=self.public_id),
-                'training_images': url_for("api.get_training_images", user=self.public_id)
+                'training_images': url_for("api.get_training_images", user=self.public_id),
+                'promote': url_for('api.promote_user', public_id=self.public_id),
+                'demote': url_for('api.demote_user', public_id=self.public_id)
             }
         }
 
@@ -119,13 +121,13 @@ class TrainingImage(db.Model):
     def to_dict(self):
         return {
             "public_id": self.public_id,
-            "image_url": self.get_image_url(),
             "width": self.width,
             "height": self.height,
             
             "user": self.user.public_id,
             
             "_links": {
+                "image": self.get_image_url(),
                 "self": url_for("api.get_training_image", public_id=self.public_id),
                 "user": url_for("api.get_user", public_id=self.user.public_id),
                 "classified_areas": url_for('api.get_classified_areas', training_image=self.public_id)
@@ -163,7 +165,7 @@ class TrainingImage(db.Model):
 
 
     
-def convert_traning_image_to_object_if_string(training_image):
+def convert_to_traning_image_object_if_string(training_image):
     if isinstance(training_image, str):
         training_image = TrainingImage.query.filter_by(public_id=training_image).first()
     
@@ -204,8 +206,7 @@ class ClassifiedArea(db.Model):
         )
 
     def update_attributes(self, dictionary):
-        self.fill_missing_attributes(dictionary)
-        self.validate_arguments(dictionary)
+        self.prepare_dictionary_of_attributes(dictionary)
 
         for field in dictionary:
             if field in ClassifiedArea.UPDATABLE_ATTRIBUTES:
@@ -222,14 +223,16 @@ class ClassifiedArea(db.Model):
             "tag": self.tag,
 
             "public_id": self.public_id,
-
             "training_image": self.training_image.public_id,
 
             "_links": {
                 "self": url_for("api.get_classified_area", public_id=self.public_id),
                 "training_image": url_for(
                     "api.get_training_image", public_id=self.training_image.public_id
-                ) if self.training_image else None
+                ) if self.training_image else None,
+                "training_image_cropped": url_for(
+                    "api.get_classified_area_image", public_id=self.public_id
+                )
             }
         }
 
@@ -237,16 +240,24 @@ class ClassifiedArea(db.Model):
         return self.training_image.user == user or user.is_admin
 
 
+    def prepare_dictionary_of_attributes(self, dictionary):
+        self.fill_missing_attributes(dictionary)
+        
+        # Make training_image of correct type
+        dictionary['training_image'] = convert_to_traning_image_object_if_string(dictionary['training_image'])
+        
+        self.validate_argument_types(dictionary)
+        self.validate_argument_values(dictionary)
+
+
+
     def fill_missing_attributes(self, dictionary):
         for attribute in ClassifiedArea.UPDATABLE_ATTRIBUTES:
             if attribute not in dictionary:
                 dictionary[attribute] = getattr(self, attribute)
 
-
-
     @staticmethod
     def from_dict(data):
-        data['training_image'] = convert_traning_image_to_object_if_string(data['training_image'])
 
         area = ClassifiedArea(
             **data
@@ -264,7 +275,7 @@ class ClassifiedArea(db.Model):
             if argument in ClassifiedArea.UPDATABLE_ATTRIBUTES:
                 if not isinstance(arguments[argument], ClassifiedArea.ATTRIBUTE_TYPES[argument]):
                     ClassifiedArea.raise_invalid_argument_type_exception(arguments, argument)
-    
+
     @staticmethod
     def validate_argument_values(arguments): 
         if arguments['x_position'] < 0 or arguments['y_position'] < 0:

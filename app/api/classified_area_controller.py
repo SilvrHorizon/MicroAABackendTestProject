@@ -32,6 +32,15 @@ def filter_by_training_image_or_404(query, training_image_public_id):
         training_image=training_image
     )
 
+# Partially bad name, read function for better understanding 
+def filter_by_tag(query, tag):
+    if tag is None:
+        return query
+
+    return query.filter_by(
+        tag=tag
+    )
+
 
 @blueprint.route("/classified_areas", methods=['GET'])
 def get_classified_areas():
@@ -39,9 +48,13 @@ def get_classified_areas():
     query = ClassifiedArea.query
 
     training_image_public_id = request.args.get("training_image")
+    tag_filter = request.args.get("tag")
+
 
     query = filter_by_training_image_or_404(query, training_image_public_id)
-    return jsonify(api_paginate_query(query, page=page, per_page=current_app.config["ITEMS_PER_PAGE"], endpoint="api.get_classified_areas"))
+    query = filter_by_tag(query, tag_filter)
+
+    return jsonify(api_paginate_query(query, page=page, per_page=current_app.config["ITEMS_PER_PAGE"], endpoint="api.get_classified_areas", tag=tag_filter, training_image=training_image_public_id))
 
 @blueprint.route('/classified_areas/<string:public_id>', methods=['PUT'])
 @login_required
@@ -53,7 +66,7 @@ def update_classified_area(current_user, public_id):
     
     try:
         area.update_attributes(request.json)
-    except TypeError as e:
+    except (ValueError, TypeError) as e:
         db.session.rollback()
         return make_bad_request_response(str(e))
     

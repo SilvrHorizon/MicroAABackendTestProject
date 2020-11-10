@@ -53,10 +53,10 @@ def abort_if_non_admin_tries_promote_or_demote(user_trying):
 
 
 
-@blueprint.route('/users/<user_public_id>', methods=['PUT'])
+@blueprint.route('/users/<string:public_id>', methods=['PUT'])
 @login_required
-def update_user(current_user, user_public_id):
-    user_to_update = User.query.filter_by(public_id=user_public_id).first_or_404()
+def update_user(current_user, public_id):
+    user_to_update = User.query.filter_by(public_id=public_id).first_or_404()
 
     if not user_to_update.modifiable_by(current_user):
         return make_unauthorized_response("You do not have the permission to update this user")
@@ -84,13 +84,13 @@ def delete_user(current_user, public_id):
 
     return {"status": "success"}, 200
 
-@blueprint.route('/users/<string:user_public_id>/demote', methods=['POST'])
+@blueprint.route('/users/<string:public_id>/demote', methods=['POST'])
 @login_required
-def demote_user(current_user, user_public_id):
+def demote_user(current_user, public_id):
     if not current_user.is_admin:
         return make_unauthorized_response("Only admins can demote users")
     
-    user = User.query.filter_by(public_id=user_public_id).first_or_404()
+    user = User.query.filter_by(public_id=public_id).first_or_404()
     if not user:
         return make_error_response(404, "User not found")
     
@@ -105,13 +105,13 @@ def demote_user(current_user, user_public_id):
 
 
 
-@blueprint.route('/users/<string:user_public_id>/promote', methods=["POST"])
+@blueprint.route('/users/<string:public_id>/promote', methods=["POST"])
 @login_required
-def promote_user(current_user, user_public_id):
+def promote_user(current_user, public_id):
     if not current_user.is_admin:
         return make_unauthorized_response("Only admins can promote users")
     
-    user = User.query.filter_by(public_id=user_public_id).first_or_404()
+    user = User.query.filter_by(public_id=public_id).first_or_404()
     
     user.update_attributes(
         dict(
@@ -122,3 +122,9 @@ def promote_user(current_user, user_public_id):
     db.session.commit()
     return {"status": "success"}, 200
 
+@blueprint.route('/me')
+@login_required
+def my_public_id(current_user):
+    return jsonify(
+        current_user.to_dict()
+    )

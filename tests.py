@@ -68,7 +68,7 @@ class TestUser():
         return self.post('/training_images', data=data)
         
 
-    def get_create_classified_area_response(self, training_image="", x_position=0, y_position=0, width=0, height=0, tag=None):
+    def get_create_classified_area_response(self, training_image="", x_position=0, y_position=0, width=1, height=1, tag=None):
         return self.post(
             '/classified_areas',
             json={
@@ -191,7 +191,7 @@ class TestRoutes(unittest.TestCase):
 
         ))
 
-        image_url = self.user.get_create_image_response(get_file_binary('TEST_IMAGE.png')).json['image_url']
+        image_url = self.user.get_create_image_response(get_file_binary('TEST_IMAGE.png')).json['_links']['image']
         
         # Check that the file uploaded got saved propperly
         self.assertEqual(
@@ -325,8 +325,8 @@ class TestRoutes(unittest.TestCase):
             x_position=0,
             y_position=0,
             
-            width=0,
-            height=0,
+            width=1,
+            height=1,
         ).json['public_id']
 
         json_data = dict(
