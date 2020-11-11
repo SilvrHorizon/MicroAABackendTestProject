@@ -6,7 +6,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
 
 
-class DevelopmentConfig():
+class DevelopmentConfig(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or 'sqlite:///' + os.path.join(basedir, "app.db")
     
@@ -19,7 +19,7 @@ class DevelopmentConfig():
     ITEMS_PER_PAGE = int(os.environ.get('ITEMS_PER_PAGE')) if os.environ.get('ITEMS_PER_PAGE') else 12 * 60
 
 
-class TestConfig():
+class TestConfig(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///'
     TRAINING_IMAGES_UPLOAD_URL = '/static/tests/training_images'
