@@ -246,6 +246,10 @@ class ClassifiedArea(db.Model):
         # Make training_image of correct type
         dictionary['training_image'] = convert_to_traning_image_object_if_string(dictionary['training_image'])
         
+        # Tag can be of none type
+        if dictionary['tag']:
+            dictionary['tag'] = dictionary['tag'].lower()
+        
         self.validate_argument_types(dictionary)
         self.validate_argument_values(dictionary)
 

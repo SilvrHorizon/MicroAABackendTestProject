@@ -38,7 +38,7 @@ def filter_by_tag(query, tag):
         return query
 
     return query.filter_by(
-        tag=tag
+        tag=tag.lower()
     )
 
 
