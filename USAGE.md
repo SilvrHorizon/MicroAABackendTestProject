@@ -73,8 +73,12 @@ All collections have the following structure:
 
     *items: list                - ( Contains all the objects of the current page )
 
+
 # Controllers
 
+## Login route                  - ( base_url/login )
+- Uses HTTP Basic Auth. Pass email and password as credentials
+- Returns: x-access-token which should be included as a HTTP header in all subsequent requests
 
 ## User                         - ( base_url/users )
 
