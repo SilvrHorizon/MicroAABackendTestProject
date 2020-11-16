@@ -31,8 +31,6 @@ def get_file_binary(path):
 
 class TestUser():
     def __init__(self, app, email, password, authenticate=True):
-        super()
-
         self.email = email
         self.password = password
 
@@ -44,7 +42,7 @@ class TestUser():
         else:
             self.token = "INVALID_TOKEN"
 
-    
+    # Adds this object to the actual flask app
     def _create_in_api(self):
         request = self.client.post('/users',
             json={'email': self.email, 'password': self.password}
@@ -152,15 +150,16 @@ class TestRoutes(unittest.TestCase):
         self.response_resolves_to(self.user.get('/secret_protected_route'), 200))
 
     def test_image_upload(self):
-        #Test with unauthorized user
+        
+        #Test with unauthenticated user
         self.assertTrue(
-        self.response_resolves_to(self.unauthenticatedUser.get_create_image_response(), 401)
+            self.response_resolves_to(self.unauthenticatedUser.get_create_image_response(), 401)
         )
 
         # Test with invalid file
         self.assertTrue(
         self.response_resolves_to(self.user.get_create_image_response(
-            get_file_binary('tests.py')
+            get_file_binary(__file__)
         ), 400))
 
         # Make sure the user cannot upload an image to another user
@@ -183,7 +182,7 @@ class TestRoutes(unittest.TestCase):
 
         image_url = self.user.get_create_image_response().json['_links']['image']
         
-        # Check that the file uploaded got saved propperly
+        # Check that the file uploaded got saved properly
         self.assertEqual(
             self.user.get(image_url).data,
             get_file_binary('TEST_IMAGE.png')
@@ -192,7 +191,6 @@ class TestRoutes(unittest.TestCase):
     def test_classified_area_upload(self):
         # Create an image
         image_public_id = self.user.get_create_image_response().json["public_id"]
-
 
         valid_dimensions = {
             'x_position': 1,
@@ -213,19 +211,19 @@ class TestRoutes(unittest.TestCase):
             )
 
         for key in valid_dimensions:
-            one_too_high_value = valid_dimensions.copy()
-            one_too_high_value[key] = 100000
+            one_out_of_bounds_value = valid_dimensions.copy()
+            one_out_of_bounds_value[key] = 100000
 
             self.assertTrue(
                 self.response_resolves_to(
-                    self.user.get_create_classified_area_response(training_image=image_public_id, **one_too_high_value, tag="Dog"),
+                    self.user.get_create_classified_area_response(training_image=image_public_id, **one_out_of_bounds_value, tag="Dog"),
                     400
                 )
             )
 
         for key in valid_dimensions:
             one_value_of_invalid_type = valid_dimensions.copy()
-            one_value_of_invalid_type[key] = 3.1459
+            one_value_of_invalid_type[key] = 3.1459 # Floats not accepted
 
             self.assertTrue(
                 self.response_resolves_to(
@@ -255,6 +253,23 @@ class TestRoutes(unittest.TestCase):
             400
         ))
 
+        # Test user cannot upload area to another user
+        self.assertTrue(
+            self.response_resolves_to(
+                self.user2.get_create_classified_area_response(training_image=image_public_id, **valid_dimensions, tag="Dog"),
+                401
+            )
+        )
+
+        # Test that an admin can upload an area to another user
+        self.assertTrue(
+            self.response_resolves_to(
+                self.admin.get_create_classified_area_response(training_image=image_public_id, **valid_dimensions, tag="Dog"),
+                201
+            )
+        )
+
+
         # Test with no tag type ( should be creatable )
         self.assertTrue(
         self.response_resolves_to(
@@ -266,6 +281,8 @@ class TestRoutes(unittest.TestCase):
             training_image=image_public_id, **valid_dimensions, tag="dog"
         )
 
+
+        # Test a completely valid create request
         response = self.user.get_create_classified_area_response(**valid_arguments)
         self.assertTrue(
         self.response_resolves_to(
@@ -273,12 +290,14 @@ class TestRoutes(unittest.TestCase):
             201
         ))
 
+        # Make sure exists in db
         self.assertTrue(
         self.response_resolves_to(
             self.user.get(f'/classified_areas/{response.json["public_id"]}'),
             200
         ))
 
+        # Test if the created object has the correct values
         for key in valid_arguments:
             self.assertTrue(key in response.json)
 
@@ -309,14 +328,16 @@ class TestRoutes(unittest.TestCase):
 
         json_data = dict(
             x_position=1,
-            y_position=2,
+            y_position=1,
             
-            width=1,
-            height=1,
+            width=2,
+            height=2,
 
             tag="hello"
         )
+        
 
+        # Unauthorized user ( User2 trying to update user'1')
         self.assertTrue(
             self.response_resolves_to(
                 self.user2.put(f'/classified_areas/{area}',
@@ -324,6 +345,7 @@ class TestRoutes(unittest.TestCase):
             )
         )
         
+        # Valid request ( by normal user )
         self.assertTrue(
             self.response_resolves_to(
                 self.user.put(f'/classified_areas/{area}',
@@ -346,6 +368,7 @@ class TestRoutes(unittest.TestCase):
             tag="newtag"
         )
         
+        # Valid request ( by admin user )
         self.assertTrue(
             self.response_resolves_to(
                 self.admin.put(f'/classified_areas/{area}',
@@ -358,20 +381,15 @@ class TestRoutes(unittest.TestCase):
         for key in json_data2:
             self.assertEqual(json_data2[key], in_db[key])
 
-
-
-        
-
-
     def test_put_user(self):
-        
 
+        # Test with invalid email
         self.assertTrue(
             self.response_resolves_to(
                 self.user.put(
                     f'/users/{self.user.public_id}',
                     {
-                        "email": "bad_email",
+                        "email": "bademail",
                         "password": "pass"
                     }
                 ),
@@ -379,6 +397,7 @@ class TestRoutes(unittest.TestCase):
             )
         )
 
+        # Test with invalid email type
         self.assertTrue(
             self.response_resolves_to(
                 self.user.put(
@@ -392,6 +411,7 @@ class TestRoutes(unittest.TestCase):
             )
         )
 
+        # Test with invalid password type
         self.assertTrue(
             self.response_resolves_to(
                 self.user.put(
@@ -406,7 +426,7 @@ class TestRoutes(unittest.TestCase):
         )
 
 
-        passed_json = {
+        json_to_pass_user_case = {
             "email": "RANDOMTESTTHING@test.com",
             "password": "hello"
         }
@@ -415,18 +435,18 @@ class TestRoutes(unittest.TestCase):
             self.response_resolves_to(
                 self.user.put(
                     f'/users/{self.user.public_id}',
-                    passed_json
+                    json_to_pass_user_case
                 ),
                 200
             )
         )
 
         from_db = User.query.filter_by(public_id=self.user.public_id).first()
-        self.assertEqual(from_db.email, passed_json["email"])
-        self.assertTrue(from_db.check_password(passed_json["password"]))
+        self.assertEqual(from_db.email, json_to_pass_user_case["email"])
+        self.assertTrue(from_db.check_password(json_to_pass_user_case["password"]))
 
 
-        passed_json = {
+        json_to_pass_admin_case = {
             "email": "ADMINWILLCHANGETHIS@test.com",
             "password": "and this too"
         }
@@ -436,26 +456,26 @@ class TestRoutes(unittest.TestCase):
             self.response_resolves_to(
                 self.user2.put(
                     f'/users/{self.user.public_id}',
-                    passed_json
+                    json_to_pass_admin_case
                 ),
                 401
             )
         )
 
-
+        # Test that admin can change
         self.assertTrue(
             self.response_resolves_to(
                 self.admin.put(
                     f'/users/{self.user.public_id}',
-                    passed_json
+                    json_to_pass_admin_case
                 ),
                 200
             )
         )
 
         from_db = User.query.filter_by(public_id=self.user.public_id).first()
-        self.assertEqual(from_db.email, passed_json["email"])
-        self.assertTrue(from_db.check_password(passed_json["password"]))
+        self.assertEqual(from_db.email, json_to_pass_admin_case["email"])
+        self.assertTrue(from_db.check_password(json_to_pass_admin_case["password"]))
 
 
     def test_promote_demote_user(self):
@@ -476,6 +496,7 @@ class TestRoutes(unittest.TestCase):
             self.client.get(f'/users/{self.user.public_id}').json["is_admin"],
             True
         )
+
         self.assertTrue(
             self.response_resolves_to(
                 self.admin.post(f'/users/{self.user.public_id}/demote'),
@@ -519,10 +540,9 @@ class TestDatabase(unittest.TestCase):
 
     def test_user(self):
         u = User(email="test@example.com", password="secure_pass")
+
         self.assertEqual(u.email, "test@example.com")
         self.assertTrue(u.check_password("secure_pass"))
-
-        # db.session.add(u)
 
     def test_training_image(self):
         u = User(email="test@example.com", password="secure_pass")
