@@ -20,9 +20,6 @@ import secrets
 
 from uuid import uuid4
 
-
-FLASK_BASE_URL = "http://127.0.0.1:5000"
-
 class TestUser():
     def __init__(self, app, email, password, authenticate=True):
         super()
@@ -121,12 +118,6 @@ class TestRoutes(unittest.TestCase):
         db.create_all()
 
         self.client = self.app.test_client()
-
-        self.auth_test_route = f'{FLASK_BASE_URL}/secret_protected_route'
-        self.login_route = f'{FLASK_BASE_URL}/login'
-        self.users_route = f'{FLASK_BASE_URL}/users'
-
-        self.training_images_route = f'{FLASK_BASE_URL}/training_images'
         
         self.user = TestUser(self.app, f'{secrets.token_hex(16).lower()}@helllo.com', "password")
         self.user2 = TestUser(self.app, f'{secrets.token_hex(16).lower()}@helllo.com', "password")
