@@ -18,9 +18,10 @@ def create_token(user):
             "public_id": user.public_id,
             "exp": datetime.datetime.utcnow() + datetime.timedelta(
                 minutes=current_app.config["TOKEN_EXPIERY_IN_MINUTES"]
-            )
+            ),
         },
         current_app.config["SECRET_KEY"],
+        algorithm='HS256'
     )
 
 @blueprint.route('/login')
@@ -42,7 +43,11 @@ def token_expired(decoded_token):
 
 def decode_token_or_401():
     try:
-        return jwt.decode(request.headers['x-access-token'], current_app.config["SECRET_KEY"])    
+        return jwt.decode(
+            request.headers['x-access-token'],
+            current_app.config["SECRET_KEY"],
+            algorithms=['HS256']) 
+   
     except Exception:
         abort(401, "Invalid token")
 
