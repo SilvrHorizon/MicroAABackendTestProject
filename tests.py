@@ -20,6 +20,15 @@ import secrets
 
 from uuid import uuid4
 
+
+TEST_IMAGE_1_PATH = os.path.abspath("TEST_IMAGE.png")
+
+def get_file_binary(path):
+    file = None
+    with open(path, 'rb') as stream:
+        file = stream.read()
+    return file
+
 class TestUser():
     def __init__(self, app, email, password, authenticate=True):
         super()
@@ -56,7 +65,10 @@ class TestUser():
         self.token = request.json["x-access-token"]
 
 
-    def get_create_image_response(self, image_binary="", user=None):
+    def get_create_image_response(self, image_binary=None, user=None):
+        if not image_binary:
+            image_binary = get_file_binary(TEST_IMAGE_1_PATH)
+
         data = dict(image=(io.BytesIO(image_binary), 'image.png'))
         
         if user is not None:
@@ -101,11 +113,7 @@ class TestUser():
         return result
         
 
-def get_file_binary(path):
-    file = None
-    with open(path, 'rb') as stream:
-        file = stream.read()
-    return file
+
 
 class TestRoutes(unittest.TestCase):
     def response_resolves_to(self, response, status_code):
@@ -146,9 +154,7 @@ class TestRoutes(unittest.TestCase):
     def test_image_upload(self):
         #Test with unauthorized user
         self.assertTrue(
-        self.response_resolves_to(self.unauthenticatedUser.get_create_image_response(
-            get_file_binary('TEST_IMAGE.png')
-        ), 401)
+        self.response_resolves_to(self.unauthenticatedUser.get_create_image_response(), 401)
         )
 
         # Test with invalid file
@@ -160,29 +166,22 @@ class TestRoutes(unittest.TestCase):
         # Make sure the user cannot upload an image to another user
         self.assertTrue(
         self.response_resolves_to(self.user.get_create_image_response(
-            get_file_binary('TEST_IMAGE.png'),
             user=self.user2.public_id
         ), 401))
 
         # Check that admins can create images that belong to other users
         self.assertTrue(
         self.response_resolves_to(
-            self.admin.get_create_image_response(
-                get_file_binary('TEST_IMAGE.png'),
-                user=self.user2.public_id
-            ), 201
+            self.admin.get_create_image_response(user=self.user2.public_id), 201
         ))
 
         # Test that image upload works
         self.assertTrue(
         self.response_resolves_to(
-            self.user.get_create_image_response(
-                get_file_binary('TEST_IMAGE.png')
-            ), 201
-
+            self.user.get_create_image_response(), 201
         ))
 
-        image_url = self.user.get_create_image_response(get_file_binary('TEST_IMAGE.png')).json['_links']['image']
+        image_url = self.user.get_create_image_response().json['_links']['image']
         
         # Check that the file uploaded got saved propperly
         self.assertEqual(
@@ -191,13 +190,12 @@ class TestRoutes(unittest.TestCase):
         )
 
     def test_classified_area_upload(self):
-        image_public_id = self.user.get_create_image_response(
-            get_file_binary('TEST_IMAGE.png')
-        ).json["public_id"]
+        # Create an image
+        image_public_id = self.user.get_create_image_response().json["public_id"]
 
         self.assertTrue(
         self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image="INVALID_ID", x_position=-1, y_position=1, width=1, height=1, tag="Dog"),
+            self.user.get_create_classified_area_response(training_image="INVALID_ID", x_position=1, y_position=1, width=1, height=1, tag="Dog"),
             400
         ))
 
@@ -306,9 +304,7 @@ class TestRoutes(unittest.TestCase):
 
 
     def test_put_classified_area(self):
-        image = self.user.get_create_image_response(
-            image_binary=get_file_binary("TEST_IMAGE.png")
-        ).json['public_id']
+        image = self.user.get_create_image_response().json['public_id']
 
         area = self.user.get_create_classified_area_response(
             training_image=image,
