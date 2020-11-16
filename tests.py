@@ -193,88 +193,79 @@ class TestRoutes(unittest.TestCase):
         # Create an image
         image_public_id = self.user.get_create_image_response().json["public_id"]
 
+
+        valid_dimensions = {
+            'x_position': 1,
+            'y_position': 1,
+            'width': 1,
+            'height': 1
+        }
+
+        for key in valid_dimensions:
+            one_negative_value = valid_dimensions.copy()
+            one_negative_value[key] = -1
+
+            self.assertTrue(
+                self.response_resolves_to(
+                    self.user.get_create_classified_area_response(training_image=image_public_id, **one_negative_value, tag="Dog"),
+                    400
+                )
+            )
+
+        for key in valid_dimensions:
+            one_too_high_value = valid_dimensions.copy()
+            one_too_high_value[key] = 100000
+
+            self.assertTrue(
+                self.response_resolves_to(
+                    self.user.get_create_classified_area_response(training_image=image_public_id, **one_too_high_value, tag="Dog"),
+                    400
+                )
+            )
+
+        for key in valid_dimensions:
+            one_value_of_invalid_type = valid_dimensions.copy()
+            one_value_of_invalid_type[key] = 3.1459
+
+            self.assertTrue(
+                self.response_resolves_to(
+                    self.user.get_create_classified_area_response(training_image=image_public_id, **one_value_of_invalid_type, tag="Dog"),
+                    400
+                )
+            )
+
+        # Test with invalid training_image id
         self.assertTrue(
         self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image="INVALID_ID", x_position=1, y_position=1, width=1, height=1, tag="Dog"),
+            self.user.get_create_classified_area_response(training_image="INVALID_ID", **valid_dimensions, tag="Dog"),
             400
         ))
 
+        # Test with wrong training image type
         self.assertTrue(
         self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=-1, y_position=1, width=1, height=1, tag="Dog"),
+            self.user.get_create_classified_area_response(training_image=True, **valid_dimensions, tag="Dog"),
             400
         ))
 
+        # Test with wrong tag type
         self.assertTrue(
         self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=-1, width=1, height=1, tag="Dog"),
+            self.user.get_create_classified_area_response(training_image=image_public_id, **valid_dimensions, tag=False),
             400
         ))
 
+        # Test with no tag type ( should be creatable )
         self.assertTrue(
         self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=-1, height=1, tag="Dog"),
-            400
-        ))
-
-        self.assertTrue(
-        self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=1, height=-1, tag="Dog"),
-            400
-        ))
-
-        self.assertTrue(
-        self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=200, height=1, tag="Dog"),
-            400
-        ))
-
-        self.assertTrue(
-        self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=1, height=200, tag="Dog"),
-            400
-        ))
-
-        self.assertTrue(
-        self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=True, x_position=1, y_position=1, width=1, height=200, tag="Dog"),
-            400
-        ))
-
-        self.assertTrue(
-        self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position="Hello", y_position=1, width=1, height=200, tag="Dog"),
-            400
-        ))
-
-        self.assertTrue(
-        self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=True, width=1, height=200, tag="Dog"),
-            400
-        ))
-
-        self.assertTrue(
-        self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=False, height=200, tag="Dog"),
-            400
-        ))
-
-
-        self.assertTrue(
-        self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=1, height=None, tag="Dog"),
-            400
-        ))
-
-        self.assertTrue(
-        self.response_resolves_to(
-            self.user.get_create_classified_area_response(training_image=image_public_id, x_position=1, y_position=1, width=1, height=1, tag=False),
-            400
+            self.user.get_create_classified_area_response(training_image=image_public_id, **valid_dimensions),
+            201
         ))
 
         valid_arguments = dict(
-            training_image=image_public_id, x_position=1, y_position=1, width=1, height=1, tag="dog"
+            training_image=image_public_id, **valid_dimensions, tag="dog"
         )
+
         response = self.user.get_create_classified_area_response(**valid_arguments)
         self.assertTrue(
         self.response_resolves_to(
