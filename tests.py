@@ -5,7 +5,7 @@ from app import create_app, db
 
 from app.models import User, TrainingImage
 
-from flask import url_for
+from flask import current_app, url_for
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -179,10 +179,9 @@ class TestRoutes(unittest.TestCase):
         self.response_resolves_to(
             self.user.get_create_image_response(), 201
         ))
-
-        image_url = self.user.get_create_image_response().json['_links']['image']
         
-        # Check that the file uploaded got saved properly
+        # TODO Find resource leak. In Flask source? flask/helpers.py: 629
+        image_url = self.user.get_create_image_response().json['_links']['image']
         self.assertEqual(
             self.user.get(image_url).data,
             get_file_binary('TEST_IMAGE.png')
@@ -511,7 +510,7 @@ class TestRoutes(unittest.TestCase):
 
 
     def remove_test_images(self):
-        dir_name = os.path.join('app', 'static', 'tests', 'training_images')
+        dir_name = os.path.join(current_app.static_folder, current_app.config['TRAINING_IMAGES_UPLOAD_FOLDER'])
         test = os.listdir(dir_name)
         for item in test:
             if item.endswith(".png"):

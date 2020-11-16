@@ -39,3 +39,5 @@ TOTAL = ~900 minutes => 15h
 2020-11-10 19:38-20:35 d= 0h57  : Bug fixes and documentation writing
 
 2020-11-11 15:52-16:04 d= 0h12  : README.md Updates and updated app/__init__.py
+
+2020-11-16 16:17-17:55 d= 1h38  : Cleaned up tests.py a bit ( Much more work to be done)
