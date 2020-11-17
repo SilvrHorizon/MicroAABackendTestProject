@@ -13,7 +13,26 @@ from .utilities import valid_email, valid_password
 def generateUuid():
     return uuid4().hex
 
-class User(db.Model):
+class APIModelMixin(object):
+
+    @classmethod
+    def raise_invalid_argument_type_exception(cls, arguments, argument):
+        if isinstance(cls.ATTRIBUTE_TYPES[argument], tuple):
+            raise TypeError(f'{argument} was of type {type(arguments[argument]).__name__} not of type {list(i.__name__ for i in cls.ATTRIBUTE_TYPES[argument])}') 
+        else:
+            raise TypeError(f'{argument} was of type {type(arguments[argument]).__name__} not of type {cls.ATTRIBUTE_TYPES[argument].__name__}')   
+
+    @classmethod
+    def validate_argument_types(cls, arguments):
+        for argument in arguments:
+            if argument in cls.UPDATABLE_ATTRIBUTES:
+                if not isinstance(arguments[argument], cls.ATTRIBUTE_TYPES[argument]):
+                    cls.raise_invalid_argument_type_exception(arguments, argument)
+        
+        
+
+
+class User(db.Model, APIModelMixin):
     UPDATABLE_ATTRIBUTES = ['email', 'password', 'is_admin']
     ATTRIBUTE_TYPES = {
         'email': str,
@@ -82,13 +101,6 @@ class User(db.Model):
         User.validate_argument_types(dictionary)
         User.validate_argument_values(dictionary)
 
-    @staticmethod
-    def validate_argument_types(dictionary):
-        for field in dictionary:
-            if field in User.UPDATABLE_ATTRIBUTES:
-                if not isinstance(dictionary[field], User.ATTRIBUTE_TYPES[field]):
-                    raise TypeError(f'{field} was of type {type(dictionary[field]).__name__} not of type {User.ATTRIBUTE_TYPES[field].__name__}')
-    
     @staticmethod
     def validate_argument_values(dictionary):
         if 'email' in dictionary:
@@ -174,7 +186,7 @@ def convert_to_traning_image_object_if_string(training_image):
 
     return training_image
 
-class ClassifiedArea(db.Model):
+class ClassifiedArea(db.Model, APIModelMixin):
     UPDATABLE_ATTRIBUTES = ['x_position', 'y_position', 'width', 'height', 'tag', 'training_image']
     ATTRIBUTE_TYPES = {
         'x_position': int, 
@@ -272,13 +284,6 @@ class ClassifiedArea(db.Model):
     def validate_arguments(arguments):
         ClassifiedArea.validate_argument_types(arguments)
         ClassifiedArea.validate_argument_values(arguments)
-    
-    @staticmethod
-    def validate_argument_types(arguments):
-        for argument in arguments:
-            if argument in ClassifiedArea.UPDATABLE_ATTRIBUTES:
-                if not isinstance(arguments[argument], ClassifiedArea.ATTRIBUTE_TYPES[argument]):
-                    ClassifiedArea.raise_invalid_argument_type_exception(arguments, argument)
 
     @staticmethod
     def validate_argument_values(arguments): 
@@ -290,11 +295,3 @@ class ClassifiedArea(db.Model):
 
         if arguments['width'] < 1 or arguments['height'] < 1:
             raise ValueError("Width and height cannot be below 1px")
-    
-    @staticmethod
-    def raise_invalid_argument_type_exception(arguments, argument):
-        if isinstance(ClassifiedArea.ATTRIBUTE_TYPES[argument], tuple):
-            raise TypeError(f'{argument} was of type {type(arguments[argument]).__name__} not of type {list(i.__name__ for i in ClassifiedArea.ATTRIBUTE_TYPES[argument])}') 
-        else:
-            raise TypeError(f'{argument} was of type {type(arguments[argument]).__name__} not of type {ClassifiedArea.ATTRIBUTE_TYPES[argument].__name__}')   
-
