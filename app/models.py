@@ -14,7 +14,6 @@ def generateUuid():
     return uuid4().hex
 
 class APIModelMixin(object):
-
     @classmethod
     def raise_invalid_argument_type_exception(cls, arguments, argument):
         if isinstance(cls.ATTRIBUTE_TYPES[argument], tuple):
@@ -28,6 +27,31 @@ class APIModelMixin(object):
             if argument in cls.UPDATABLE_ATTRIBUTES:
                 if not isinstance(arguments[argument], cls.ATTRIBUTE_TYPES[argument]):
                     cls.raise_invalid_argument_type_exception(arguments, argument)
+    
+    @classmethod
+    def from_dict(cls, dictionary):
+        return cls(**dictionary)
+
+
+    @classmethod
+    def validate_argument_values(cls, arguments):
+        pass
+
+    @classmethod
+    def validate_arguments(cls, arguments):
+        cls.validate_argument_types(arguments)
+        cls.validate_argument_values(arguments)
+
+    def update_attributes(self, arguments):
+        pass
+
+    def modifiable_by(self, user):
+        pass
+
+    def to_dict(self):
+        pass
+
+
         
         
 
@@ -90,19 +114,8 @@ class User(db.Model, APIModelMixin):
         if password:
             self.password_hash = generate_password_hash(password)
     
-
-    @staticmethod
-    def from_dict(dictionary):
-        user = User(**dictionary) 
-        return user
-    
-    @staticmethod
-    def validate_arguments(dictionary):
-        User.validate_argument_types(dictionary)
-        User.validate_argument_values(dictionary)
-
-    @staticmethod
-    def validate_argument_values(dictionary):
+    @classmethod
+    def validate_argument_values(cls, dictionary):
         if 'email' in dictionary:
             if not valid_email(dictionary["email"]):
                 raise ValueError("Invalid email address!")
@@ -262,31 +275,15 @@ class ClassifiedArea(db.Model, APIModelMixin):
         if dictionary['tag']:
             dictionary['tag'] = dictionary['tag'].lower()
         
-        self.validate_argument_types(dictionary)
-        self.validate_argument_values(dictionary)
-
-
+        self.validate_arguments(dictionary)
 
     def fill_missing_attributes(self, dictionary):
         for attribute in ClassifiedArea.UPDATABLE_ATTRIBUTES:
             if attribute not in dictionary:
                 dictionary[attribute] = getattr(self, attribute)
 
-    @staticmethod
-    def from_dict(data):
-
-        area = ClassifiedArea(
-            **data
-        )
-        return area
-
-    @staticmethod
-    def validate_arguments(arguments):
-        ClassifiedArea.validate_argument_types(arguments)
-        ClassifiedArea.validate_argument_values(arguments)
-
-    @staticmethod
-    def validate_argument_values(arguments): 
+    @classmethod
+    def validate_argument_values(cls, arguments): 
         if arguments['x_position'] < 0 or arguments['y_position'] < 0:
             raise ValueError("ClassifiedAreas cannot extend out of the bounds the parent image!")
         
