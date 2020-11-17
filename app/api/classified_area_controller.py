@@ -16,8 +16,7 @@ from .pagination import api_paginate_query, get_pagination_page
 from .auth import login_required
 
 
-# Partially bad name, read function for better understanding 
-def filter_by_training_image_or_404(query, training_image_public_id):
+def filter_query_by_training_image_parent_or_404(query, training_image_public_id):
     
     # If there is no specific training image to filter by, return the query as it is
     if training_image_public_id is None:
@@ -32,8 +31,7 @@ def filter_by_training_image_or_404(query, training_image_public_id):
         training_image=training_image
     )
 
-# Partially bad name, read function for better understanding 
-def filter_by_tag(query, tag):
+def filter_query_by_tag(query, tag):
     if tag is None:
         return query
 
@@ -51,8 +49,8 @@ def get_classified_areas():
     tag_filter = request.args.get("tag")
 
 
-    query = filter_by_training_image_or_404(query, training_image_public_id)
-    query = filter_by_tag(query, tag_filter)
+    query = filter_query_by_training_image_parent_or_404(query, training_image_public_id)
+    query = filter_query_by_tag(query, tag_filter)
 
     return jsonify(api_paginate_query(query, page=page, per_page=current_app.config["ITEMS_PER_PAGE"], endpoint="api.get_classified_areas", tag=tag_filter, training_image=training_image_public_id))
 

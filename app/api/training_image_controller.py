@@ -16,8 +16,7 @@ def get_training_image(public_id):
     return jsonify(image.to_dict())
 
 
-# Partially bad name, read function for better understanding 
-def filter_by_user_or_404(query, user_public_id):
+def filter_query_by_parent_user_or_404(query, user_public_id):
 
     # If there is no specific user to filter by, return the query as it is
     if user_public_id is None:
@@ -43,7 +42,7 @@ def get_training_images():
     else:
         page = int(page)
     
-    query = filter_by_user_or_404(query, user_public_id)
+    query = filter_query_by_parent_user_or_404(query, user_public_id)
     return jsonify(api_paginate_query(query, page=page, per_page=current_app.config["ITEMS_PER_PAGE"], endpoint=endpoint, user=user_public_id))
 
 
