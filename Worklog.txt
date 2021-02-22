@@ -44,3 +44,4 @@ TOTAL = ~1293 minutes => 21h30
 2020-11-16 19:20-19:50 d= 0h30  : Cleaned up tests.py a bit ( Much more work to be done)
 
 2020-11-17 21:40-22:14 d= 0h34  : Made improvements to model classes. They now derive from an "abstract class"
+2020-11-17 22:22
